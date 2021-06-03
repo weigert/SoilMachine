@@ -8,7 +8,7 @@ using namespace glm;
 
 struct Vertex {
 
-	Vertex(vec3 p, vec3 n, vec3 c){
+	Vertex(vec3 p, vec3 n, vec4 c){
 		position[0] = p.x;
 		position[1] = p.y;
 		position[2] = p.z;
@@ -18,7 +18,7 @@ struct Vertex {
 		color[0] = c.x;
 		color[1] = c.y;
 		color[2] = c.z;
-		color[3] = 1.0;
+		color[3] = c.w;
 	}
 
 	float position[3];

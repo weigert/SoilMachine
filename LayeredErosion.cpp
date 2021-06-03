@@ -1,12 +1,14 @@
 #include <TinyEngine/TinyEngine>
 #include <TinyEngine/camera>
 
+#define SEED 10
+#define SIZEX 1024
+#define SIZEY 1024
+#define scale 256.0f
+
 #include "source/vertexpool.h"
 #include "source/layermap.h"
 #include "source/scene.h"
-
-#define SIZEX 1024
-#define SIZEY 1024
 
 int main( int argc, char* args[] ) {
 
@@ -47,7 +49,7 @@ int main( int argc, char* args[] ) {
 
 	//Execute the render loop
 	Tiny::loop([&](){
-    map.update(vertexpool);
+  //  map.update(vertexpool);
 	});
 
 	Tiny::quit();

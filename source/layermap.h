@@ -1,24 +1,31 @@
 /*
+================================================================================
+                          Layermap Data Structure
+================================================================================
 
-layermap datastructure:
-Continuous Run-Length Encoded 2.99D Height-Map using a Memory Pool!
-
-Should allow for fast queries. Then I need a vertex pool which allows for visualization
-of this thing.
-
-Also needs a method for visualization -> vertexpool
-
-Need a datastructure that contains parameters which we can then query based on an enumerator.
+Continuous Run-Length Encoded Heightmap with Memory Pooled RLE Components
+Utilizes a vertexpool to avoid remeshing when updating heightmap information
 
 */
 
 #include "FastNoiseLite.h"
 #include <glm/glm.hpp>
+using namespace glm;
 
-/*
+// Surface Type Enumerator
+
 enum SurfType {
   AIR, ROCK, SOIL, WATER
 };
+
+vec4 SurfColor(SurfType type){
+  if(type == ROCK) return vec4(0.5, 0.5, 0.5, 1.0);
+  if(type == SOIL) return vec4(0.0, 0.5, 0.0, 1.0);
+  if(type == WATER) return vec4(0.0, 0.0, 0.5, 1.0);
+  return vec4(1.0, 0.0, 0.0, 0.0);
+}
+
+// RLE Section and Memory Pool
 
 struct sec {
 
@@ -29,92 +36,93 @@ SurfType type = AIR;  //Type of Surface Element
 double size = 0.0f;   //Run-Length of Element
 double floor = 0.0f;  //Cumulative Height at Bottom
 
+sec(){}
+sec(double s, SurfType t){
+  size = s;
+  type = t;
+}
+
+void reset(){
+  next = NULL;
+  prev = NULL;
+  type = AIR;
+  size = 0.0f;
+  floor = 0.0f;
+}
+
 };
 
 class secpool {
 
+  sec* start = NULL;
+  deque<sec*> free;
+
+public:
+  secpool(){}
+
+  secpool(const int N){
+    reserve(N);
+  }
+
+  void reserve(const int N){
+    start = new sec[N];
+    for(int i = 0; i < N; i++)
+      free.push_front(start+i);
+  }
+
+  //Construct-in-place and fetch
+  template<typename... Args>
+  sec* get(Args && ...args){
+    if(free.empty()){
+      std::cout<<"Memory Pool Out-Of-Elements"<<std::endl;
+      return NULL;
+    }
+    sec* E = free.back();
+    try{ new (E)sec(forward<Args>(args)...); }
+    catch(...) { throw; }
+    free.pop_back();
+    return E;
+  }
+
+  void unget(sec* E){
+    E->reset();
+    free.push_front(E);
+  }
+
 };
-*/
 
-//We need a section pool
-
-using namespace glm;
+//Layermap Data Structure with Queries
 
 class Layermap {
 
-const int SEED = 1;
-ivec2 dim;
-float* dat;
-const double scale = 200.0f;
+ivec2 dim;                                //Size
+sec** dat;                                //Data
+secpool pool;                             //Data Pool
 
-void meshpool(Vertexpool<Vertex>&);
+//Queries
+double height(ivec2);                     //Query Height at Discrete Position
+double height(vec2);                      //Query Height at Position (Bilinear Interpolation)
+vec3 normal(ivec2);                       //Normal Vector at Position
+SurfType surface(ivec2);                  //Surface Type at Position
 
-double height(vec2 pos){
+//Modifiers
+void add(ivec2, sec*);                    //Add Layer at Position
 
-  if(pos.x >= dim.x || pos.y >= dim.y){
-    std::cout<<"Height Request @ Pos: Out-Of-Bounds Exception"<<std::endl;
-    return 0.0f;
-  }
-
-  ivec2 p = floor(pos);
-  vec2 w = fract(pos);
-
-  //Bilinear Interpolation
-  double h = 0.0f;
-  h += (1.0-w.x)*(1.0-w.y)*dat[p.x*dim.y+p.y];
-  h += (1.0-w.x)*w.y*dat[(p.x+1)*dim.y+p.y];
-  h += w.x*(1.0-w.y)*dat[p.x*dim.y+(p.y+1)];
-  h += w.x*w.y*dat[(p.x+1)*dim.y+(p.y+1)];
-  return h;
-
-}
-
-vec3 normal(ivec2 pos){
-
-  vec3 n = vec3(0);
-  vec3 p = vec3(pos.x, scale*dat[pos.x*dim.y+pos.y], pos.y);
-  int k = 0;
-
-  if(pos.x > 0 && pos.y > 0){
-    vec3 b = vec3(pos.x-1, scale*dat[(pos.x-1)*dim.y+pos.y], pos.y);
-    vec3 c = vec3(pos.x, scale*dat[pos.x*dim.y+(pos.y-1)], pos.y-1);
-    n += cross(c-p, b-p);
-    k++;
-  }
-
-  if(pos.x > 0 && pos.y < dim.y - 1){
-    vec3 b = vec3(pos.x-1, scale*dat[(pos.x-1)*dim.y+pos.y], pos.y);
-    vec3 c = vec3(pos.x, scale*dat[pos.x*dim.y+(pos.y+1)], pos.y+1);
-    n -= cross(c-p, b-p);
-    k++;
-  }
-
-  if(pos.x < dim.x-1 && pos.y > 0){
-    vec3 b = vec3(pos.x+1, scale*dat[(pos.x+1)*dim.y+pos.y], pos.y);
-    vec3 c = vec3(pos.x, scale*dat[pos.x*dim.y+(pos.y-1)], pos.y-1);
-    n -= cross(c-p, b-p);
-    k++;
-  }
-
-  if(pos.x < dim.x-1 && pos.y < dim.y-1){
-    vec3 b = vec3(pos.x+1, scale*dat[(pos.x+1)*dim.y+pos.y], pos.y);
-    vec3 c = vec3(pos.x, scale*dat[pos.x*dim.y+(pos.y+1)], pos.y+1);
-    n += cross(c-p, b-p);
-    k++;
-  }
-
-  return normalize(n/(float)k);
-
-}
-
-uint* section = NULL;
+//Meshing
+uint* section = NULL;                     //Vertexpool Section Pointer
+void meshpool(Vertexpool<Vertex>&);       //Mesh based on Vertexpool
+void update(ivec2, Vertexpool<Vertex>&);  //Update Vertexpool at Position (No Remesh)
 
 public:
 
+//Constructors
 Layermap(ivec2 _dim){
 
   dim = _dim;
+  dat = new sec*[dim.x*dim.y];      //Array of Section Pointers
+  pool.reserve(dim.x*dim.y*2);
 
+  //Set the Height!
   FastNoiseLite noise;
   noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
   noise.SetFractalType(FastNoiseLite::FractalType_FBm);
@@ -123,22 +131,22 @@ Layermap(ivec2 _dim){
   noise.SetFractalGain(0.6f);
   noise.SetFrequency(1.0);
 
-  dat = new float[dim.x*dim.y];
-  float min, max = 0.0;
-
+  //Add a first layer!
   for(int i = 0; i < dim.x; i++){
-    for(int j = 0; j < dim.y; j++){
-      dat[i*dim.y+j] = noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)(SEED%1000));
-      if(dat[i*dim.y+j] > max) max = dat[i*dim.y+j];
-      if(dat[i*dim.y+j] < min) min = dat[i*dim.y+j];
-    }
-  }
+  for(int j = 0; j < dim.y; j++){
 
-  for(int i = 0; i < dim.x; i++){
-    for(int j = 0; j < dim.y; j++){
-      dat[i*dim.y+j] = (dat[i*dim.y+j] - min)/(max - min);
-    }
-  }
+    //Compute Height Value
+    double h = noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)(SEED%1000));
+
+    //Add by constructing in place
+    if(h < 0.0) add(ivec2(i, j), pool.get(0.0f, AIR));
+    else add(ivec2(i, j), pool.get(h, ROCK));
+
+    //Second Layer!
+    h = noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+50)%1000));
+    if(h > 0.0) add(ivec2(i, j), pool.get(h, SOIL));
+
+  }}
 
 }
 
@@ -146,45 +154,98 @@ Layermap(ivec2 _dim, Vertexpool<Vertex>& vertexpool):Layermap(_dim){
   meshpool(vertexpool);
 }
 
-void update(Vertexpool<Vertex>& vertexpool){
+};
 
-  for(int j = 0; j < 1000; j++){
+void Layermap::add(ivec2 pos, sec* E){
 
-    int i = rand()%(dim.x*dim.y);
-    dat[i] += (float)(rand()%1000-500)/20000.0f;
+  if(dat[pos.x*dim.y+pos.y] != NULL){
 
-    vertexpool.fill(section, i,
-      vec3(i/dim.y, scale*dat[i], i%dim.y),
-      normal(ivec2(i/dim.y,i%dim.y)),
-      vec4(0.5, 0.5, 0.5, 1.0)
-    );
+    dat[pos.x*dim.y+pos.y]->next = E; //Reference Next Element
+    E->prev = dat[pos.x*dim.y+pos.y]; //Reference Previous Element
+    
+    E->floor = height(pos);
+    dat[pos.x*dim.y+pos.y] = E;
 
   }
+  else dat[pos.x*dim.y+pos.y] = E;
 
 }
 
-//sec** dat;            //Actual Section Data
+vec3 Layermap::normal(ivec2 pos){
+
+  vec3 n = vec3(0);
+  vec3 p = vec3(pos.x, scale*height(pos), pos.y);
+  int k = 0;
+
+  if(pos.x > 0 && pos.y > 0){
+    vec3 b = vec3(pos.x-1, scale*height(pos-ivec2(1,0)), pos.y);
+    vec3 c = vec3(pos.x, scale*height(pos-ivec2(0,1)), pos.y-1);
+    n += cross(c-p, b-p);
+    k++;
+  }
+
+  if(pos.x > 0 && pos.y < dim.y - 1){
+    vec3 b = vec3(pos.x-1, scale*height(pos-ivec2(1,0)), pos.y);
+    vec3 c = vec3(pos.x, scale*height(pos+ivec2(0,1)), pos.y+1);
+    n -= cross(c-p, b-p);
+    k++;
+  }
+
+  if(pos.x < dim.x-1 && pos.y > 0){
+    vec3 b = vec3(pos.x+1, scale*height(pos+ivec2(1,0)), pos.y);
+    vec3 c = vec3(pos.x, scale*height(pos-ivec2(0,1)), pos.y-1);
+    n -= cross(c-p, b-p);
+    k++;
+  }
+
+  if(pos.x < dim.x-1 && pos.y < dim.y-1){
+    vec3 b = vec3(pos.x+1, scale*height(pos+ivec2(1,0)), pos.y);
+    vec3 c = vec3(pos.x, scale*height(pos+ivec2(0,1)), pos.y+1);
+    n += cross(c-p, b-p);
+    k++;
+  }
+
+  return normalize(n/(float)k);
+
+}
 
 
-};
+//Queries
+
+SurfType Layermap::surface(ivec2 pos){
+  return dat[pos.x*dim.y+pos.y]->type;
+}
+
+double Layermap::height(ivec2 pos){
+  return (dat[pos.x*dim.y+pos.y]->floor + dat[pos.x*dim.y+pos.y]->size);
+}
+
+double Layermap::height(vec2 pos){
+
+  double h = 0.0f;
+  ivec2 p = floor(pos);
+  vec2 w = fract(pos);
+
+  h += (1.0-w.x)*(1.0-w.y)*height(p);
+  h += (1.0-w.x)*w.y*height(p+ivec2(1,0));
+  h += w.x*(1.0-w.y)*height(p+ivec2(0,1));
+  h += w.x*w.y*height(p+ivec2(1,1));
+  return h;
+
+}
+
+// Meshing
 
 void Layermap::meshpool(Vertexpool<Vertex>& vertexpool){
 
   section = vertexpool.section(dim.x*dim.y, 0, glm::vec3(0));
 
-  for(int i = 0; i < dim.x; i++){
-  for(int j = 0; j < dim.y; j++){
+  for(int i = 0; i < dim.x; i++)
+  for(int j = 0; j < dim.y; j++)
+    update(ivec2(i,j), vertexpool);
 
-    vertexpool.fill(section, i*dim.y+j,
-      vec3(i, scale*dat[i*dim.y+j], j),
-      normal(ivec2(i,j)),
-      vec4(0.5, 0.5, 0.5, 1.0)
-    );
-
-  }}
-
-  for(int j = 0; j < dim.y-1; j++){
   for(int i = 0; i < dim.x-1; i++){
+  for(int j = 0; j < dim.y-1; j++){
 
     vertexpool.indices.push_back(i*dim.y+j);
     vertexpool.indices.push_back(i*dim.y+(j+1));
@@ -199,5 +260,15 @@ void Layermap::meshpool(Vertexpool<Vertex>& vertexpool){
   vertexpool.resize(section, vertexpool.indices.size());
   vertexpool.index();
   vertexpool.update();
+
+}
+
+void Layermap::update(ivec2 p, Vertexpool<Vertex>& vertexpool){
+
+  vertexpool.fill(section, p.x*dim.y+p.y,
+    vec3(p.x, scale*height(p), p.y),
+    normal(p),
+    SurfColor(surface(p))
+  );
 
 }

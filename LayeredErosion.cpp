@@ -5,21 +5,24 @@
 #include "source/layermap.h"
 #include "source/scene.h"
 
+#define SIZEX 1024
+#define SIZEY 1024
+
 int main( int argc, char* args[] ) {
 
 	//Initialize a Window
 	Tiny::window("Layered Erosion", 1200, 800);
-  cam::near = -200.0f;
-	cam::far = 200.0f;
-  cam::look = glm::vec3(128, 64, 128);
-	cam::init(10, cam::ORTHO);
+  cam::near = -800.0f;
+	cam::far = 800.0f;
+  cam::look = glm::vec3(SIZEX/2, 150, SIZEY/2);
+	cam::init(2, cam::ORTHO);
 
 	Tiny::event.handler = cam::handler;
 	Tiny::view.interface = [&](){};
 
   //Define Layermap, Construct Vertexpool
-  Vertexpool<Vertex> vertexpool(256*256, 1);
-  Layermap map(glm::ivec2(256), vertexpool);
+  Vertexpool<Vertex> vertexpool(SIZEX*SIZEY, 1);
+  Layermap map(glm::ivec2(SIZEX,SIZEY), vertexpool);
 
   //Visualization Shader
   Shader shader({"source/shader/default.vs", "source/shader/default.fs"}, {"in_Position", "in_Normal", "in_Color"});
@@ -44,7 +47,7 @@ int main( int argc, char* args[] ) {
 
 	//Execute the render loop
 	Tiny::loop([&](){
-
+    map.update(vertexpool);
 	});
 
 	Tiny::quit();

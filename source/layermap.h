@@ -45,7 +45,7 @@ class Layermap {
 const int SEED = 1;
 ivec2 dim;
 float* dat;
-const double scale = 50.0f;
+const double scale = 200.0f;
 
 void meshpool(Vertexpool<Vertex>&);
 
@@ -107,6 +107,8 @@ vec3 normal(ivec2 pos){
 
 }
 
+uint* section = NULL;
+
 public:
 
 Layermap(ivec2 _dim){
@@ -144,6 +146,23 @@ Layermap(ivec2 _dim, Vertexpool<Vertex>& vertexpool):Layermap(_dim){
   meshpool(vertexpool);
 }
 
+void update(Vertexpool<Vertex>& vertexpool){
+
+  for(int j = 0; j < 1000; j++){
+
+    int i = rand()%(dim.x*dim.y);
+    dat[i] += (float)(rand()%1000-500)/20000.0f;
+
+    vertexpool.fill(section, i,
+      vec3(i/dim.y, scale*dat[i], i%dim.y),
+      normal(ivec2(i/dim.y,i%dim.y)),
+      vec4(0.5, 0.5, 0.5, 1.0)
+    );
+
+  }
+
+}
+
 //sec** dat;            //Actual Section Data
 
 
@@ -151,7 +170,7 @@ Layermap(ivec2 _dim, Vertexpool<Vertex>& vertexpool):Layermap(_dim){
 
 void Layermap::meshpool(Vertexpool<Vertex>& vertexpool){
 
-  uint* section = vertexpool.section(dim.x*dim.y, 0, glm::vec3(0));
+  section = vertexpool.section(dim.x*dim.y, 0, glm::vec3(0));
 
   for(int i = 0; i < dim.x; i++){
   for(int j = 0; j < dim.y; j++){

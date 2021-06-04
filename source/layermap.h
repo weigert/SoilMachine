@@ -133,9 +133,9 @@ Layermap(ivec2 _dim){
   FastNoiseLite noise;
   noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
   noise.SetFractalType(FastNoiseLite::FractalType_FBm);
-  noise.SetFractalOctaves(8.0f);
+  noise.SetFractalOctaves(6.0f);
   noise.SetFractalLacunarity(2.0f);
-  noise.SetFractalGain(0.6f);
+  noise.SetFractalGain(0.5f);
   noise.SetFrequency(1.0);
 
   //Add a first layer!
@@ -241,7 +241,7 @@ vec3 Layermap::normal(ivec2 pos){
     k++;
   }
 
-  return n/(float)k;
+  return normalize(n/(float)k);
 
 }
 

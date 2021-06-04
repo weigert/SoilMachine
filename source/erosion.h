@@ -22,16 +22,25 @@ struct Particle{
 
 //Simulation Parameters
 
-float dt = 1.0f;
+/*
+float dt = 0.5f;
 const float density = 1.0;  //This gives varying amounts of inertia and stuff...
 const float evapRate = 0.001;
-const float depositionRate = 0.1;
+const float depositionRate = 0.3;
 const float minVol = 0.01;
-const float friction = 0.07;
+const float friction = 0.05;
+*/
+
+float dt = 0.4f;
+const float density = 1.0;  //This gives varying amounts of inertia and stuff...
+const float evapRate = 0.001;
+const float depositionRate = 0.3;
+const float minVol = 0.01;
+const float friction = 0.05;
 
 void erode(Layermap& map, Vertexpool<Vertex>& vertexpool){
 
-  for(int i = 0; i < 100; i++){
+  for(int i = 0; i < 250; i++){
 
   vec2 newpos = glm::vec2(rand()%map.dim.x, rand()%map.dim.y);
 
@@ -40,11 +49,8 @@ void erode(Layermap& map, Vertexpool<Vertex>& vertexpool){
 
   while(drop.volume > minVol){
 
-    if(!glm::all(glm::greaterThanEqual(drop.pos, vec2(0))) ||
-       !glm::all(glm::lessThan(drop.pos, (vec2)map.dim-1.0f))) break;
-
-    ipos = drop.pos;
-    vec3 n = map.normal(drop.pos);
+    ipos = round(drop.pos);
+    vec3 n = map.normal(ipos);
 
     drop.speed += dt*vec2(n.x, n.z)/(drop.volume*density);//F = ma, so a = F/m
     drop.pos   += dt*drop.speed;
@@ -53,14 +59,14 @@ void erode(Layermap& map, Vertexpool<Vertex>& vertexpool){
     if(!glm::all(glm::greaterThanEqual(drop.pos, vec2(0))) ||
        !glm::all(glm::lessThan(drop.pos, (vec2)map.dim-1.0f))) break;
 
-    float c_eq = drop.volume*glm::length(drop.speed)*(map.height(ipos)-map.height(drop.pos));
+    float c_eq = drop.volume*glm::length(drop.speed)*(map.height(ipos)-map.height((ivec2)drop.pos));
     if(c_eq < 0.0) c_eq = 0.0;
     float cdiff = c_eq - drop.sediment;
 
     drop.sediment += dt*depositionRate*cdiff;
 
     if(cdiff > 0) map.add(ipos, map.pool.get(-dt*drop.volume*depositionRate*cdiff, SOIL));
-    if(cdiff <= 0) map.remove(ipos, dt*drop.volume*depositionRate*cdiff);
+    if(cdiff < 0) map.remove(ipos, dt*drop.volume*depositionRate*cdiff);
 
     if(map.surface(ipos) == AIR){
       map.add(ipos, map.pool.get(0.001f, ROCK));

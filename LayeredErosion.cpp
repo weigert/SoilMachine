@@ -1,10 +1,10 @@
 #include <TinyEngine/TinyEngine>
 #include <TinyEngine/camera>
 
-#define SEED 50
-#define SIZEX 512
-#define SIZEY 512
-#define scale 100.0f
+#define SEED 110
+#define SIZEX 256
+#define SIZEY 256
+#define scale 80.0f
 
 #include "source/vertexpool.h"
 #include "source/layermap.h"

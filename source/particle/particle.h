@@ -62,12 +62,12 @@ void cascade(vec2 pos, Layermap& map, Vertexpool<Vertex>& vertexpool){
     if(diff > 0){
       transfer = (transfer < map.top(ipos)->size)?transfer:map.top(ipos)->size;
       map.remove(ipos, param.settling*transfer);
-      map.add(npos, map.pool.get(param.settling*transfer, param.becomes));
+      map.add(npos, map.pool.get(param.settling*transfer, param.cascades));
     }
     else{
       transfer = (transfer < map.top(npos)->size)?transfer:map.top(npos)->size;
       map.remove(npos, param.settling*transfer);
-      map.add(ipos, map.pool.get(param.settling*transfer, param.becomes));
+      map.add(ipos, map.pool.get(param.settling*transfer, param.cascades));
     }
 
   }
@@ -82,15 +82,18 @@ struct WaterParticle : public Particle {
   //Core Properties
   float volume = 1.0;   //This will vary in time
   float sediment = 0.0; //Fraction of Volume that is Sediment!
+  float density = 1.0f; //Density of Internal Sediment
+
+  bool init = true;
 
   //Helper Properties
   ivec2 ipos;
   vec3 n;
+  SurfType type;
   SurfParam param;
 
   const float minvol = 0.005;
   const float evaprate = 0.01;
-  const float density = 1.0;
 
   bool move(Layermap& map, Vertexpool<Vertex>& vertexpool){
 
@@ -98,7 +101,8 @@ struct WaterParticle : public Particle {
     n = map.normal(ipos);
 
     //Surface Parameters!
-    param = pdict[map.surface(ipos)];
+    type = map.surface(ipos);
+    param = pdict[type];
 
     if(length(vec2(n.x, n.z)/(volume*density)*param.friction) < 0.005)   //No Motion
       return false;
@@ -117,13 +121,38 @@ struct WaterParticle : public Particle {
 
   bool interact(Layermap& map, Vertexpool<Vertex>& vertexpool){
 
+    //Edge Case
+    if(type == AIR){
+      map.add(ipos, map.pool.get(0.0001f, ROCK));
+      map.update(ipos, vertexpool);
+      return false;
+    }
+
+    if(init){
+      density = param.density;
+      init = false;
+    }
+
     float c_eq = param.solubility*length(vec2(n.x,n.z)/(volume*density))*volume*(map.height(ipos)-map.height(pos));
     if(c_eq < 0.0) c_eq = 0.0;
 
     float cdiff = c_eq - sediment;
+
+    if(cdiff < 0){
+      density = (sediment*density - param.erosiveness*param.equrate*cdiff*param.density);
+      density /= (sediment - param.equrate*cdiff);
+    }
+
     sediment += param.equrate*cdiff;
 
-    if(cdiff < 0) map.add(ipos, map.pool.get(-volume*param.equrate*cdiff, param.becomes));
+    //Regular Case
+
+    if(cdiff < 0){
+      if(density <= pdict[param.erodes].density)
+        map.add(ipos, map.pool.get(-volume*density*param.equrate*cdiff, param.erodes));
+      else
+        map.add(ipos, map.pool.get(-volume*density*param.equrate*cdiff, type));
+    }
     if(cdiff > 0){
       double diff = map.remove(ipos, volume*density*param.equrate*cdiff);
       while(diff > 0.0) diff = map.remove(ipos, diff);

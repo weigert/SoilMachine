@@ -55,7 +55,7 @@ vec4 gouraud(){
 	float ambient = 0.3;
 	float spec = 0.3*pow(max(dot(normalize(lookdir), normalize(reflect(lightpos, in_Normal))), 0.0), 32.0);
 
-	return vec4(lightcolor*lightstrength*((1.0f)*(diffuse + spec) + ambient ), 1.0f);
+	return vec4(lightcolor*lightstrength*((1.0f-0.8*shade())*(diffuse + spec) + ambient ), 1.0f);
 
 }
 

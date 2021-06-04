@@ -42,11 +42,11 @@ void reset(){
 };
 
 class secpool {
+public:
+
 
   sec* start = NULL;
   deque<sec*> free;
-
-public:
   secpool(){}
 
   secpool(const int N){
@@ -116,7 +116,7 @@ Layermap(ivec2 _dim){
 
   dim = _dim;
   dat = new sec*[dim.x*dim.y];      //Array of Section Pointers
-  pool.reserve(dim.x*dim.y*5);
+  pool.reserve(dim.x*dim.y*15);
 
   //Set the Height!
   FastNoiseLite noise;
@@ -166,6 +166,13 @@ void Layermap::add(ivec2 pos, sec* E){
 
     }
 
+    else if(pdict[dat[pos.x*dim.y+pos.y]->type].density < pdict[E->type].density){
+
+      dat[pos.x*dim.y+pos.y]->size += E->size;
+      pool.unget(E);
+
+    }
+
     //Add New Element
     else{
 
@@ -196,6 +203,7 @@ double Layermap::remove(ivec2 pos, double h){
     return diff;
   }
   else return 0.0;
+
 }
 
 vec3 Layermap::normal(ivec2 pos){

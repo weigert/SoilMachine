@@ -1,14 +1,15 @@
 #include <TinyEngine/TinyEngine>
 #include <TinyEngine/camera>
 
-#define SEED 125
+#define SEED 130
 #define SIZEX 512
 #define SIZEY 512
 #define scale 128.0f
 
 #include "source/vertexpool.h"
 #include "source/layermap.h"
-#include "source/erosion.h"
+
+#include "source/particle/particle.h"
 #include "source/scene.h"
 
 int main( int argc, char* args[] ) {
@@ -17,6 +18,7 @@ int main( int argc, char* args[] ) {
 	Tiny::window("Layered Erosion", 1200, 800);
   cam::near = -800.0f;
 	cam::far = 800.0f;
+	cam::moverate = 10.0f;
   cam::look = glm::vec3(SIZEX/2, scale/2, SIZEY/2);
 	cam::init(10, cam::ORTHO);
 
@@ -29,6 +31,7 @@ int main( int argc, char* args[] ) {
 			paused = !paused;
 
 	};
+
 	Tiny::view.interface = [&](){};
 
   //Define Layermap, Construct Vertexpool
@@ -69,8 +72,15 @@ int main( int argc, char* args[] ) {
 
 	//Execute the render loop
 	Tiny::loop([&](){
+
 		if(paused) return;
-    erode(map, vertexpool, 1500);
+
+		for(int i = 0; i < 1500; i++){
+
+	    WaterParticle drop(vec2(rand()%map.dim.x, rand()%map.dim.y));
+	    while(drop.move(map, vertexpool) && drop.interact(map, vertexpool));
+
+	  }
 
 	});
 

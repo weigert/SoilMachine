@@ -8,22 +8,11 @@ Utilizes a vertexpool to avoid remeshing when updating heightmap information
 
 */
 
-#include "FastNoiseLite.h"
+#include "include/FastNoiseLite.h"
 #include <glm/glm.hpp>
 using namespace glm;
 
-// Surface Type Enumerator
-
-enum SurfType {
-  AIR, ROCK, SOIL, WATER
-};
-
-vec4 SurfColor(SurfType type){
-  if(type == ROCK) return vec4(0.3, 0.3, 0.3, 1.0);
-  if(type == SOIL) return vec4(0.5, 0.5, 0.5, 1.0);
-  if(type == WATER) return vec4(0.0, 0.0, 0.5, 1.0);
-  return vec4(1.0, 0.0, 0.0, 0.0);
-}
+#include "surface.h"
 
 // RLE Section and Memory Pool
 
@@ -127,7 +116,7 @@ Layermap(ivec2 _dim){
 
   dim = _dim;
   dat = new sec*[dim.x*dim.y];      //Array of Section Pointers
-  pool.reserve(dim.x*dim.y*2);
+  pool.reserve(dim.x*dim.y*5);
 
   //Set the Height!
   FastNoiseLite noise;
@@ -324,7 +313,7 @@ void Layermap::update(ivec2 p, Vertexpool<Vertex>& vertexpool){
   vertexpool.fill(section, p.x*dim.y+p.y,
     vec3(p.x, scale*height(p), p.y),
     normal(p),
-    SurfColor(surface(p))
+    pdict[surface(p)].color
   );
 
 }

@@ -95,6 +95,8 @@ public:
 
 class Layermap {
 
+public:
+
 ivec2 dim;                                //Size
 sec** dat;                                //Data
 secpool pool;                             //Data Pool
@@ -103,10 +105,15 @@ secpool pool;                             //Data Pool
 double height(ivec2);                     //Query Height at Discrete Position
 double height(vec2);                      //Query Height at Position (Bilinear Interpolation)
 vec3 normal(ivec2);                       //Normal Vector at Position
+vec3 normal(vec2);                        //Normal Vector at Position (Bilinear Interpolation)
 SurfType surface(ivec2);                  //Surface Type at Position
 
 //Modifiers
 void add(ivec2, sec*);                    //Add Layer at Position
+void remove(ivec2, double);               //Remove Layer at Position
+sec* top(ivec2 pos){
+  return dat[pos.x*dim.y+pos.y];
+}
 
 //Meshing
 uint* section = NULL;                     //Vertexpool Section Pointer
@@ -135,16 +142,15 @@ Layermap(ivec2 _dim){
   for(int i = 0; i < dim.x; i++){
   for(int j = 0; j < dim.y; j++){
 
-    //Compute Height Value
-    double h = noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)(SEED%1000));
+    dat[i*dim.y+j] = NULL; //Initialize to Null
 
-    //Add by constructing in place
-    if(h < 0.0) add(ivec2(i, j), pool.get(0.0f, AIR));
-    else add(ivec2(i, j), pool.get(h, ROCK));
+    //Compute Height Value
+    double h = 0.5f+noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)(SEED%1000));
+    if(h > 0.0) add(ivec2(i, j), pool.get(h, ROCK));
 
     //Second Layer!
-    h = noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+50)%1000));
-    if(h > 0.0) add(ivec2(i, j), pool.get(h, SOIL));
+  //  h = noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+50)%1000));
+  //  if(h > 0.0) add(ivec2(i, j), pool.get(h, SOIL));
 
   }}
 
@@ -158,16 +164,46 @@ Layermap(ivec2 _dim, Vertexpool<Vertex>& vertexpool):Layermap(_dim){
 
 void Layermap::add(ivec2 pos, sec* E){
 
-  if(dat[pos.x*dim.y+pos.y] != NULL){
-
-    dat[pos.x*dim.y+pos.y]->next = E; //Reference Next Element
-    E->prev = dat[pos.x*dim.y+pos.y]; //Reference Previous Element
-    
-    E->floor = height(pos);
+  if(dat[pos.x*dim.y+pos.y] == NULL){
     dat[pos.x*dim.y+pos.y] = E;
+  }
+  else if(dat[pos.x*dim.y+pos.y] != NULL){
+
+    //Check for same type
+    if(dat[pos.x*dim.y+pos.y]->type == E->type){
+
+      dat[pos.x*dim.y+pos.y]->size += E->size;
+      pool.unget(E); //Return the Element!
+
+    }
+
+    //Add New Element
+    else{
+
+      dat[pos.x*dim.y+pos.y]->next = E; //Reference Next Element
+      E->prev = dat[pos.x*dim.y+pos.y]; //Reference Previous Element
+
+      E->floor = height(pos);
+      dat[pos.x*dim.y+pos.y] = E;
+
+    }
 
   }
-  else dat[pos.x*dim.y+pos.y] = E;
+
+}
+
+void Layermap::remove(ivec2 pos, double h){
+
+  if(dat[pos.x*dim.y+pos.y] == NULL)
+    return;
+
+  dat[pos.x*dim.y+pos.y]->size -= h;
+
+  if(dat[pos.x*dim.y+pos.y]->size < 0.0){
+    sec* E = dat[pos.x*dim.y+pos.y];
+    dat[pos.x*dim.y+pos.y] = E->prev; //May be NULL
+    pool.unget(E);
+  }
 
 }
 
@@ -205,22 +241,40 @@ vec3 Layermap::normal(ivec2 pos){
     k++;
   }
 
-  return normalize(n/(float)k);
+  return n/(float)k;
 
 }
 
+vec3 Layermap::normal(vec2 pos){
+
+  vec3 n = vec3(0);
+  ivec2 p = floor(pos);
+  vec2 w = fract(pos);
+
+  n += (1.0f-w.x)*(1.0f-w.y)*normal(p);
+  n += (1.0f-w.x)*w.y*normal(p+ivec2(1,0));
+  n += w.x*(1.0f-w.y)*normal(p+ivec2(0,1));
+  n += w.x*w.y*normal(p+ivec2(1,1));
+
+  return n;
+
+}
 
 //Queries
 
 SurfType Layermap::surface(ivec2 pos){
+  if(dat[pos.x*dim.y+pos.y] == NULL) return AIR;
   return dat[pos.x*dim.y+pos.y]->type;
 }
 
 double Layermap::height(ivec2 pos){
+  if(dat[pos.x*dim.y+pos.y] == NULL) return 0.0;
   return (dat[pos.x*dim.y+pos.y]->floor + dat[pos.x*dim.y+pos.y]->size);
 }
 
 double Layermap::height(vec2 pos){
+
+  //std::cout<<pos.x<<" "<<pos.y<<std::endl;
 
   double h = 0.0f;
   ivec2 p = floor(pos);

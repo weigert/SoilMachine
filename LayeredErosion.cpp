@@ -1,13 +1,14 @@
 #include <TinyEngine/TinyEngine>
 #include <TinyEngine/camera>
 
-#define SEED 10
-#define SIZEX 1024
-#define SIZEY 1024
-#define scale 256.0f
+#define SEED 50
+#define SIZEX 512
+#define SIZEY 512
+#define scale 100.0f
 
 #include "source/vertexpool.h"
 #include "source/layermap.h"
+#include "source/erosion.h"
 #include "source/scene.h"
 
 int main( int argc, char* args[] ) {
@@ -16,18 +17,19 @@ int main( int argc, char* args[] ) {
 	Tiny::window("Layered Erosion", 1200, 800);
   cam::near = -800.0f;
 	cam::far = 800.0f;
-  cam::look = glm::vec3(SIZEX/2, 150, SIZEY/2);
-	cam::init(2, cam::ORTHO);
+  cam::look = glm::vec3(SIZEX/2, scale/2, SIZEY/2);
+	cam::init(10, cam::ORTHO);
 
 	Tiny::event.handler = cam::handler;
 	Tiny::view.interface = [&](){};
 
   //Define Layermap, Construct Vertexpool
   Vertexpool<Vertex> vertexpool(SIZEX*SIZEY, 1);
-  Layermap map(glm::ivec2(SIZEX,SIZEY), vertexpool);
+  Layermap map(glm::ivec2(SIZEX, SIZEY), vertexpool);
 
   //Visualization Shader
   Shader shader({"source/shader/default.vs", "source/shader/default.fs"}, {"in_Position", "in_Normal", "in_Color"});
+  //Shader depth()
 
 	//Define the rendering pipeline
 	Tiny::view.pipeline = [&](){
@@ -49,7 +51,9 @@ int main( int argc, char* args[] ) {
 
 	//Execute the render loop
 	Tiny::loop([&](){
-  //  map.update(vertexpool);
+
+    erode(map, vertexpool);
+
 	});
 
 	Tiny::quit();

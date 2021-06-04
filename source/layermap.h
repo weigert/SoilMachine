@@ -135,7 +135,7 @@ Layermap(ivec2 _dim){
 
     //Compute Height Value
     double h = 0.5f+noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)(SEED%1000));
-    if(h > 0.0) add(ivec2(i, j), pool.get(h, ROCK));
+    if(h > 0.0) add(ivec2(i, j), pool.get(h, SAND));
 
     //Second Layer!
   //  h = noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+50)%1000));
@@ -169,6 +169,7 @@ void Layermap::add(ivec2 pos, sec* E){
     else if(pdict[dat[pos.x*dim.y+pos.y]->type].density < pdict[E->type].density){
 
       dat[pos.x*dim.y+pos.y]->size += E->size;
+      dat[pos.x*dim.y+pos.y]->type = E->type;
       pool.unget(E);
 
     }

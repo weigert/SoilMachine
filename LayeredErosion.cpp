@@ -4,7 +4,7 @@
 #define SEED 125
 #define SIZEX 512
 #define SIZEY 512
-#define scale 120.0f
+#define scale 128.0f
 
 #include "source/vertexpool.h"
 #include "source/layermap.h"

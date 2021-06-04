@@ -20,7 +20,7 @@ enum SurfType {
 
 vec4 SurfColor(SurfType type){
   if(type == ROCK) return vec4(0.3, 0.3, 0.3, 1.0);
-  if(type == SOIL) return vec4(0.6, 0.6, 0.6, 1.0);
+  if(type == SOIL) return vec4(0.5, 0.5, 0.5, 1.0);
   if(type == WATER) return vec4(0.0, 0.0, 0.5, 1.0);
   return vec4(1.0, 0.0, 0.0, 0.0);
 }
@@ -110,7 +110,7 @@ SurfType surface(ivec2);                  //Surface Type at Position
 
 //Modifiers
 void add(ivec2, sec*);                    //Add Layer at Position
-void remove(ivec2, double);               //Remove Layer at Position
+double remove(ivec2, double);               //Remove Layer at Position
 sec* top(ivec2 pos){
   return dat[pos.x*dim.y+pos.y];
 }
@@ -192,19 +192,21 @@ void Layermap::add(ivec2 pos, sec* E){
 
 }
 
-void Layermap::remove(ivec2 pos, double h){
+double Layermap::remove(ivec2 pos, double h){
 
   if(dat[pos.x*dim.y+pos.y] == NULL)
-    return;
+    return 0.0; //Return Remaining Reight
 
+  double diff = h - dat[pos.x*dim.y+pos.y]->size;
   dat[pos.x*dim.y+pos.y]->size -= h;
 
-  if(dat[pos.x*dim.y+pos.y]->size < 0.0){
+  if(diff >= 0.0){
     sec* E = dat[pos.x*dim.y+pos.y];
     dat[pos.x*dim.y+pos.y] = E->prev; //May be NULL
     pool.unget(E);
+    return diff;
   }
-
+  else return 0.0;
 }
 
 vec3 Layermap::normal(ivec2 pos){

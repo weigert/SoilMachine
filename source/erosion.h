@@ -31,16 +31,16 @@ const float minVol = 0.01;
 const float friction = 0.05;
 */
 
-float dt = 0.4f;
+const float dt = 1.0f;
 const float density = 1.0;  //This gives varying amounts of inertia and stuff...
-const float evapRate = 0.001;
-const float depositionRate = 0.3;
-const float minVol = 0.01;
-const float friction = 0.05;
+const float evapRate = 0.01;
+const float depositionRate = 0.6;
+const float minVol = 0.005;
+const float friction = 0.95;
 
-void erode(Layermap& map, Vertexpool<Vertex>& vertexpool){
+void erode(Layermap& map, Vertexpool<Vertex>& vertexpool, const int ncycles){
 
-  for(int i = 0; i < 250; i++){
+  for(int i = 0; i < ncycles; i++){
 
   vec2 newpos = glm::vec2(rand()%map.dim.x, rand()%map.dim.y);
 
@@ -49,31 +49,38 @@ void erode(Layermap& map, Vertexpool<Vertex>& vertexpool){
 
   while(drop.volume > minVol){
 
-    ipos = round(drop.pos);
-    vec3 n = map.normal(ipos);
+    if(!glm::all(glm::greaterThanEqual(drop.pos, vec2(0))) ||
+       !glm::all(glm::lessThan(drop.pos, (vec2)map.dim-1.0f))) break;
 
-    drop.speed += dt*vec2(n.x, n.z)/(drop.volume*density);//F = ma, so a = F/m
-    drop.pos   += dt*drop.speed;
-    drop.speed *= (1.0-dt*friction);       //Friction Factor
+    ipos = round(drop.pos);
+    vec3 n = map.normal(drop.pos);
+
+    //If the Particle is not accelerating...
+    if(length(vec2(n.x,n.z)/drop.volume) < 0.01) break;
+
+    //Variable Time-Step
+    drop.speed = mix(drop.speed, vec2(n.x, n.z)/(drop.volume*density), friction);//F = ma, so a = F/m
+    drop.speed = normalize(drop.speed);
+    drop.pos   += drop.speed;
 
     if(!glm::all(glm::greaterThanEqual(drop.pos, vec2(0))) ||
        !glm::all(glm::lessThan(drop.pos, (vec2)map.dim-1.0f))) break;
 
-    float c_eq = drop.volume*glm::length(drop.speed)*(map.height(ipos)-map.height((ivec2)drop.pos));
+    float c_eq = length(vec2(n.x,n.z)/drop.volume)*drop.volume*(map.height(ipos)-map.height(drop.pos));
     if(c_eq < 0.0) c_eq = 0.0;
     float cdiff = c_eq - drop.sediment;
 
     drop.sediment += dt*depositionRate*cdiff;
 
-    if(cdiff > 0) map.add(ipos, map.pool.get(-dt*drop.volume*depositionRate*cdiff, SOIL));
-    if(cdiff < 0) map.remove(ipos, dt*drop.volume*depositionRate*cdiff);
+    if(cdiff > 0) map.add(ipos, map.pool.get(-drop.volume*depositionRate*cdiff, SOIL));
+    if(cdiff < 0) map.remove(ipos, drop.volume*depositionRate*cdiff);
 
     if(map.surface(ipos) == AIR){
       map.add(ipos, map.pool.get(0.001f, ROCK));
     }
 
-    drop.sediment /= (1.0-dt*evapRate);
-    drop.volume *= (1.0-dt*evapRate);
+    drop.sediment /= (1.0-evapRate);
+    drop.volume *= (1.0-evapRate);
 
     map.update(ipos, vertexpool);
 

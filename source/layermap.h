@@ -19,8 +19,8 @@ enum SurfType {
 };
 
 vec4 SurfColor(SurfType type){
-  if(type == ROCK) return vec4(0.5, 0.5, 0.5, 1.0);
-  if(type == SOIL) return vec4(0.0, 0.5, 0.0, 1.0);
+  if(type == ROCK) return vec4(0.3, 0.3, 0.3, 1.0);
+  if(type == SOIL) return vec4(0.6, 0.6, 0.6, 1.0);
   if(type == WATER) return vec4(0.0, 0.0, 0.5, 1.0);
   return vec4(1.0, 0.0, 0.0, 0.0);
 }
@@ -133,7 +133,7 @@ Layermap(ivec2 _dim){
   FastNoiseLite noise;
   noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
   noise.SetFractalType(FastNoiseLite::FractalType_FBm);
-  noise.SetFractalOctaves(6.0f);
+  noise.SetFractalOctaves(7.0f);
   noise.SetFractalLacunarity(2.0f);
   noise.SetFractalGain(0.5f);
   noise.SetFrequency(1.0);

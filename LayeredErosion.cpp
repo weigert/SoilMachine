@@ -2,9 +2,9 @@
 #include <TinyEngine/camera>
 
 #define SEED 110
-#define SIZEX 256
-#define SIZEY 256
-#define scale 80.0f
+#define SIZEX 512
+#define SIZEY 512
+#define scale 120.0f
 
 #include "source/vertexpool.h"
 #include "source/layermap.h"
@@ -20,7 +20,15 @@ int main( int argc, char* args[] ) {
   cam::look = glm::vec3(SIZEX/2, scale/2, SIZEY/2);
 	cam::init(10, cam::ORTHO);
 
-	Tiny::event.handler = cam::handler;
+	bool paused = true;
+	Tiny::event.handler = [&](){
+
+		cam::handler();
+
+		if(!Tiny::event.press.empty() && Tiny::event.press.back() == SDLK_p)
+			paused = !paused;
+
+	};
 	Tiny::view.interface = [&](){};
 
   //Define Layermap, Construct Vertexpool
@@ -34,7 +42,7 @@ int main( int argc, char* args[] ) {
 	//Define the rendering pipeline
 	Tiny::view.pipeline = [&](){
 
-		Tiny::view.target(glm::vec3(0));	//Clear Screen to white
+		Tiny::view.target(scene::skycolor);	//Clear Screen to white
     shader.use();
 
     shader.uniform("model", glm::mat4(1));
@@ -51,8 +59,8 @@ int main( int argc, char* args[] ) {
 
 	//Execute the render loop
 	Tiny::loop([&](){
-
-    erode(map, vertexpool);
+		if(paused) return;
+    erode(map, vertexpool, 1500);
 
 	});
 

@@ -46,6 +46,7 @@ public:
 
 
   sec* start = NULL;
+  int size;
   deque<sec*> free;
   secpool(){}
 
@@ -57,6 +58,7 @@ public:
     start = new sec[N];
     for(int i = 0; i < N; i++)
       free.push_front(start+i);
+    size = N;
   }
 
   //Construct-in-place and fetch
@@ -112,7 +114,7 @@ void update(ivec2, Vertexpool<Vertex>&);  //Update Vertexpool at Position (No Re
 public:
 
 //Constructors
-Layermap(ivec2 _dim){
+Layermap(int SEED, ivec2 _dim){
 
   dim = _dim;
   dat = new sec*[dim.x*dim.y];      //Array of Section Pointers
@@ -134,8 +136,14 @@ Layermap(ivec2 _dim){
     dat[i*dim.y+j] = NULL; //Initialize to Null
 
     //Compute Height Value
-    double h = 0.5f+noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)(SEED%1000));
-    if(h > 0.0) add(ivec2(i, j), pool.get(h, SAND));
+  //  double h = 0.5f+noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)(SEED%1000));
+  //  if(h > 0.0) add(ivec2(i, j), pool.get(h, SAND));
+
+    double h = 0.2f+noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)(SEED%1000));
+    if(h > 0.0) add(ivec2(i, j), pool.get(h, ROCK));
+
+  //  h = 0.5f*noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+10)%1000));
+  //  if(h > 0.0) add(ivec2(i, j), pool.get(h, SAND));
 
     //Second Layer!
   //  h = noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+50)%1000));
@@ -145,7 +153,7 @@ Layermap(ivec2 _dim){
 
 }
 
-Layermap(ivec2 _dim, Vertexpool<Vertex>& vertexpool):Layermap(_dim){
+Layermap(int SEED, ivec2 _dim, Vertexpool<Vertex>& vertexpool):Layermap(SEED, _dim){
   meshpool(vertexpool);
 }
 
@@ -155,37 +163,44 @@ void Layermap::add(ivec2 pos, sec* E){
 
   if(dat[pos.x*dim.y+pos.y] == NULL){
     dat[pos.x*dim.y+pos.y] = E;
+    return;
   }
-  else if(dat[pos.x*dim.y+pos.y] != NULL){
 
-    //Check for same type
-    if(dat[pos.x*dim.y+pos.y]->type == E->type){
+  //Same Type
+  if(dat[pos.x*dim.y+pos.y]->type == E->type){
+    dat[pos.x*dim.y+pos.y]->size += E->size;
+    pool.unget(E);
+    return;
+  }
 
-      dat[pos.x*dim.y+pos.y]->size += E->size;
-      pool.unget(E); //Return the Element!
+  //Add Element
+  dat[pos.x*dim.y+pos.y]->next = E;
+  E->prev = dat[pos.x*dim.y+pos.y];
+  E->floor = height(pos);
+  dat[pos.x*dim.y+pos.y] = E;   //E->prev = dat[pos.x*dim.y+pos.y]; //Reference Previous Element
+
+/*
+  //Ordering
+  sec* cur = dat[pos.x*dim.y+pos.y];
+  while(cur->prev != NULL){
+
+    if(pdict[cur->type].density >= pdict[cur->prev->type].density){
+
+      dat[pos.x*dim.y+pos.y]->prev->size += dat[pos.x*dim.y+pos.y]->size;
+
+      if(cur->prev->type != cur->type)
+        dat[pos.x*dim.y+pos.y]->prev->type = dat[pos.x*dim.y+pos.y]->type;
+
+      dat[pos.x*dim.y+pos.y] = dat[pos.x*dim.y+pos.y]->prev;
+      pool.unget(cur);
+
+      cur = dat[pos.x*dim.y+pos.y];
 
     }
-
-    else if(pdict[dat[pos.x*dim.y+pos.y]->type].density < pdict[E->type].density){
-
-      dat[pos.x*dim.y+pos.y]->size += E->size;
-      dat[pos.x*dim.y+pos.y]->type = E->type;
-      pool.unget(E);
-
-    }
-
-    //Add New Element
-    else{
-
-      dat[pos.x*dim.y+pos.y]->next = E; //Reference Next Element
-      E->prev = dat[pos.x*dim.y+pos.y]; //Reference Previous Element
-
-      E->floor = height(pos);
-      dat[pos.x*dim.y+pos.y] = E;
-
-    }
+    else cur = cur->prev;
 
   }
+*/
 
 }
 

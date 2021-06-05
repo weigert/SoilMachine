@@ -9,53 +9,76 @@
 #include <map>
 
 enum SurfType {
-  AIR, ROCK, SOIL, SAND, WATER, GRAVEL
+  AIR, ROCK, SOIL, SAND, WATER, GRAVEL, SANDSTONE
 };
 
 struct SurfParam {
 
-  //Transport Parameters
-  float friction = 1.0f;     //Surface Friction, Water Particles
-  float solubility = 1.0f;   //Relative Solubility in Water
-  float equrate = 1.0f;      //Rate of Reaching Equilibrium
-  float maxdiff = 1.0f;      //Maximum Settling Height Difference
-  float settling = 0.2f;     //Settling Rate
-  float erosiveness = 0.99f; //Rate at which particle size decreases
-
-  float density = 1.0f;
-
-  //Erosion Chain
-  SurfType erodes;
-  SurfType cascades;
-
-  //Visualization Parameters
+  //General Parameters
+  float density;
   vec4 color = vec4(0.5, 0.5, 0.5, 1.0);
+
+  //Hydrologyical Parameters
+  SurfType transports;        //Surface Type it Transports As
+  float solubility = 1.0f;    //Relative Solubility in Water
+  float equrate = 1.0f;       //Rate of Reaching Equilibrium
+  float friction = 1.0f;      //Surface Friction, Water Particles
+
+  SurfType erodes;            //Surface Type it Erodes To
+  float erosionrate = 0.0f;   //Rate of Conversion
+
+  //Cascading Parameters
+  SurfType cascades;          //Surface Type it Cascades To
+  float maxdiff = 1.0f;       //Maximum Settling Height Difference
+  float settling;             //Settling Rate
+
+  //Wind Erosion
+  SurfType abrades;           //Surface Type it Cascades To
+  float suspension = 0.0001f;
+  float abrasion;             //Rate at which particle size decreases
 
 };
 
 std::map<SurfType, SurfParam> pdict = {
 
-  {AIR, {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.95f, 0.0f, AIR, AIR, vec4(0.27, 0.57, 0.6, 0.0)}},
-  {WATER, {0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.1f, WATER, WATER, vec4(0.27, 0.57, 0.6, 1.0)}},
+  {AIR, { 0.0f, vec4(0.27, 0.57, 0.6, 0.0),
+    AIR, 1.0f, 1.0f, 1.0f,
+    AIR, 0.0f,
+    AIR, 1.0f, 0.95f,
+    AIR, 0.0f, 0.0f}},
 
-/*
-  {ROCK, {0.95f, 0.8f, 0.2f, 0.001f, 0.8f, 0.7f, 1.0f, GRAVEL, GRAVEL, vec4(0.4, 0.4, 0.4, 1.0)}},
-  {GRAVEL, {0.95f, 0.8f, 0.2f, 0.0005f, 0.8f, 0.8f, 0.95f, SOIL, GRAVEL, vec4(0.6, 0.6, 0.6, 1.0)}},
-  {SOIL, {0.5f, 1.0f, 0.6f, 0.0001f, 0.2f, 0.7f, 0.75f, SAND, SOIL, vec4(0.32, 0.52, 0.32, 1.0)}},
-*/
+//  {WATER, {0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.1f, WATER, WATER, vec4(0.27, 0.57, 0.6, 1.0)}},
 
-  {SAND, {0.25f, 1.0f, 0.8f, 0.001f, 0.2f, 1.0f, 0.4f, SAND, SAND, vec4(0.96, 0.48, 0.32, 1.0)}},
+  {SOIL, { 0.7f, vec4(0.32, 0.52, 0.32, 1.0),
+    SOIL, 1.0f, 0.3f, 0.5f,
+    SOIL, 0.0f,
+    SOIL, 0.00025f, 1.0f,
+    SOIL, 0.0f, 0.0f}},
 
+  {SAND, { 0.4f, vec4(0.88, 0.79, 0.41, 1.0),
+    SAND, 1.0f, 0.8f, 0.2f,
+    SAND, 0.0f,
+    SAND, 0.0001f, 0.2f,
+    SAND, 0.0005f, 0.0f}},
 
-  //Rock and Gravel Cascading
-  {ROCK, {0.95f, 0.2f, 0.6f, 0.001f, 0.8f, 0.7f, 1.0f, GRAVEL, ROCK, vec4(0.4, 0.4, 0.4, 1.0)}},
-  {GRAVEL, {0.75f, 1.0f, 0.8f, 0.0005f, 0.8f, 0.8f, 0.95f, GRAVEL, GRAVEL, vec4(0.6, 0.6, 0.6, 1.0)}},
-
-  //Only Rock Cascading
-  //{ROCK, {0.5f, 0.8f, 0.0f, 0.001f, 0.5f, 0.7f, 1.0f, ROCK, ROCK, vec4(0.4, 0.4, 0.4, 1.0)}},
+  {SANDSTONE, { 1.0f, vec4(0.66, 0.38, 0.22, 1.0),
+    SANDSTONE, 0.8f, 0.6f, 0.95f,
+    SANDSTONE, 0.0f,
+    SANDSTONE, 0.001f, 0.0f,
+    SAND, 0.0f, 0.1f}},
 
   //No Rock-Cascading, Only Erosion
-  //{ROCK, {0.95f, 0.8f, 0.6f, 0.001f, 0.0f, 0.7f, 1.0f, GRAVEL, ROCK, vec4(0.4, 0.4, 0.4, 1.0)}},
-  //{GRAVEL, {0.75f, 1.0f, 0.8f, 0.0005f, 0.8f, 0.8f, 0.95f, GRAVEL, GRAVEL, vec4(0.6, 0.6, 0.6, 1.0)}},
+
+  {ROCK, { 1.0f, vec4(0.4, 0.4, 0.4, 1.0),
+    GRAVEL, 0.0f, 0.6f, 0.95f,        //Hydrological Transport
+    GRAVEL, 0.0f,                     //Hydraulic In-Particle Erosion
+    GRAVEL, 0.001f, 0.4f,            //Cascading Height, Rate, Species
+    GRAVEL, 0.0f, 0.0f}},             //Wind-Erosion Suspendibility, Abrasion, Type
+
+  {GRAVEL, { 0.95f, vec4(0.6, 0.6, 0.6, 1.0),
+    GRAVEL, 0.75f, 0.8f, 0.8f,
+    SAND, 0.0f,
+    GRAVEL, 0.0005f, 0.8f,
+    GRAVEL, 0.0f, 0.0f, }}
 
 };

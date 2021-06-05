@@ -13,23 +13,28 @@ struct WindParticle : public Particle {
   WindParticle(vec2 p):Particle(p){}
 
   //Core Properties
-  const vec3 pspeed = normalize(vec3(-1,0,1));
+  const vec3 pspeed = normalize(vec3(1,0,-1));
   vec3 speed = pspeed;
   double height = 0.0;
   double sediment = 0.0; //Sediment Mass
 
+  int ncycles = 5000;
 
   //Helper Properties
   ivec2 ipos;
+  SurfParam param;
 
   //Parameters
-  const double gravity = 0.01;
-  const double suspension = 0.0001;  //Affects transport rate
+  const double gravity = 0.05;
 
   bool move(Layermap& map, Vertexpool<Vertex>& vertexpool){
 
+    ncycles--;
+    if(ncycles <= 0) return false;
+
     //Integer Position
     ipos = round(pos);
+    param = pdict[map.surface(ipos)];
 
     //Surface Height
     double sheight = map.height(ipos);
@@ -43,8 +48,8 @@ struct WindParticle : public Particle {
       speed.y -= gravity;   //Gravity
     else{                   //Contact Movement
       speed = mix(speed, pspeed, 0.1f);
-      speed = mix(speed, cross(cross(normalize(speed),n),n), 0.2f);
-      speed = sqrt(2.0f)*normalize(speed);
+      speed = mix(speed, cross(cross(speed,n),n), 0.2f);
+      speed = normalize(speed);
     }
 
     pos += vec2(speed.x, speed.z);
@@ -68,45 +73,45 @@ struct WindParticle : public Particle {
 
       double force = (map.height(npos)-height);
 
-/*
       //Abrasion
-      if(s[ind] <= 0){
+    //  if(param.abrasion > 0.0){
+    //    map.remove(ipos, param.abrasion*force*sediment);
+    //    map.add(ipos, map.pool.get(param.abrasion*force*sediment, param.abrades));
+    //    param = pdict[map.surface(npos)];
+    //  }
+    //  else{
 
-        s[ind] = 0;
-        h[ind] -= dt*abrasion*force*sediment;
-        s[ind] += dt*abrasion*force*sediment;
+        //Remove Sediment Amount
+        sediment += param.suspension*force;
+        map.remove(ipos, param.suspension*force);
 
-      }
-      */
+        if(param.settling > 0.0)
+          cascade(ipos, map, vertexpool);
 
-      //Remove Sediment Amount
-      sediment += suspension*force;
+    //  }
 
-      map.remove(ipos, suspension*force);
-
-    //  map.remove(npos, 0.5f*suspension*force);
-      cascade(ipos, map, vertexpool);
-    //  cascade(npos, map, vertexpool);
       map.update(ipos, vertexpool);
-    //  map.update(npos, vertexpool);
 
     }
 
     //Flying Particle
     else{
 
-      sediment -= suspension*sediment;
+      sediment -= param.suspension*sediment;
 
-      map.add(npos, map.pool.get(0.5*suspension*sediment, SAND));
-      map.add(ipos, map.pool.get(0.5*suspension*sediment, SAND));
-      cascade(npos, map, vertexpool);
-      cascade(ipos, map, vertexpool);
+      map.add(npos, map.pool.get(0.5f*param.suspension*sediment, param.abrades));
+      map.add(ipos, map.pool.get(0.5f*param.suspension*sediment, param.abrades));
+
+      if(param.settling > 0.0){
+        cascade(npos, map, vertexpool);
+        cascade(ipos, map, vertexpool);
+      }
       map.update(npos, vertexpool);
       map.update(ipos, vertexpool);
 
     }
 
-    return (sediment >= 1E-6);
+    return (sediment >= 1E-5);
 
   }
 

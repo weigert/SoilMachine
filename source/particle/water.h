@@ -10,39 +10,46 @@ struct WaterParticle : public Particle {
 
   WaterParticle(vec2 p):Particle(p){}
 
+  WaterParticle(vec2 p, Layermap& map):WaterParticle(p){
+
+    ipos = round(pos);
+    surface = map.surface(ipos);
+    param = pdict[surface];
+    contains = param.transports;    //The Transporting Type
+
+  }
+
   //Core Properties
   float volume = 1.0;   //This will vary in time
   float sediment = 0.0; //Fraction of Volume that is Sediment!
-  float density = 1.0f; //Density of Internal Sediment
-
-  bool init = true;
-
-  //Helper Properties
-  ivec2 ipos;
-  vec3 n;
-  SurfType type;
-  SurfParam param;
 
   const float minvol = 0.005;
   const float evaprate = 0.01;
 
+  //Helper Properties
+  ivec2 ipos;
+  vec3 n;
+  SurfParam param;
+  SurfType surface;
+  SurfType contains;
+
   bool move(Layermap& map, Vertexpool<Vertex>& vertexpool){
 
-    ipos = round(pos);
-    n = map.normal(ipos);
+    ipos = round(pos);                //Position
+    n = map.normal(ipos);             //Surface Normal Vector
+    surface = map.surface(ipos);      //Surface Composition
+    param = pdict[surface];           //Surface Composition Parameter Set
 
-    //Surface Parameters!
-    type = map.surface(ipos);
-    param = pdict[type];
-
-    if(length(vec2(n.x, n.z)/(volume*density)*param.friction) < 0.005)   //No Motion
+    if(length(vec2(n.x, n.z)/(volume)*param.friction) < 0.005)   //No Motion
       return false;
 
-    speed = mix(speed, vec2(n.x, n.z)/(volume*density), param.friction);
+    //Motion Low
+    speed = mix(speed, vec2(n.x, n.z)/(volume), param.friction);
     speed = sqrt(2.0f)*normalize(speed);
     pos   += speed;
 
-    if(!glm::all(glm::greaterThanEqual(pos, vec2(0))) ||  //Out-of-Bounds
+    //Out-of-Bounds
+    if(!glm::all(glm::greaterThanEqual(pos, vec2(0))) ||
        !glm::all(glm::lessThan(pos, (vec2)map.dim-1.0f)))
        return false;
 
@@ -52,47 +59,33 @@ struct WaterParticle : public Particle {
 
   bool interact(Layermap& map, Vertexpool<Vertex>& vertexpool){
 
-    //Edge Case
-    if(type == AIR){
-      map.add(ipos, map.pool.get(0.0001f, ROCK));
-      map.update(ipos, vertexpool);
-      return false;
-    }
-
-    if(init){
-      density = param.density;
-      init = false;
-    }
-
-    float c_eq = param.solubility*length(vec2(n.x,n.z)/(volume*density))*volume*(map.height(ipos)-map.height(pos));
+    //Equilibrium Sediment Transport Amount
+    float c_eq = param.solubility*length(vec2(n.x,n.z))*(map.height(ipos)-map.height(pos));
     if(c_eq < 0.0) c_eq = 0.0;
 
+    //Execute Transport to Particle
     float cdiff = c_eq - sediment;
-
-    if(cdiff < 0){
-      density = (sediment*density - param.erosiveness*param.equrate*cdiff*param.density);
-      density /= (sediment - param.equrate*cdiff);
-    }
-
     sediment += param.equrate*cdiff;
 
-    //Regular Case
+    //Erode Sediment IN Particle
+    if(dist::uniform() < pdict[contains].erosionrate)
+      contains = pdict[contains].erodes;
 
-    if(cdiff < 0){
-      if(density <= pdict[param.erodes].density)
-        map.add(ipos, map.pool.get(-volume*density*param.equrate*cdiff, param.erodes));
-      else
-        map.add(ipos, map.pool.get(-volume*density*param.equrate*cdiff, type));
-    }
+    //Add Sediment to Map
+    if(cdiff < 0)
+      map.add(ipos, map.pool.get(-volume*param.equrate*cdiff, contains));
+
+    //Remove Sediment from Map
     if(cdiff > 0){
-      double diff = map.remove(ipos, volume*density*param.equrate*cdiff);
+      double diff = map.remove(ipos, volume*param.equrate*cdiff);
       while(diff > 0.0) diff = map.remove(ipos, diff);
     }
 
+    //Execute Sediment Cascade at Location
     cascade(pos, map, vertexpool);
-    map.update(ipos, vertexpool);
 
-    //Change Water Particle Mass
+    //Update Map, Particle
+    map.update(ipos, vertexpool);
     sediment /= (1.0-evaprate);
     volume *= (1.0-evaprate);
     return (volume > minvol);

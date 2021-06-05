@@ -7,6 +7,8 @@
 #ifndef LAYEREDEROSION_PARTICLE
 #define LAYEREDEROSION_PARTICLE
 
+#include "../include/distribution.h"
+
 using namespace glm;
 
 struct Particle {
@@ -32,10 +34,10 @@ struct Particle {
     //Iterate over all Neighbors
     for(int m = 0; m < 8; m++){
 
-      glm::ivec2 npos = ipos + ivec2(nx[m], ny[m]);
+      ivec2 npos = ipos + ivec2(nx[m], ny[m]);
 
-      if(npos.x >= map.dim.x-1 || npos.y >= map.dim.y-1) continue;
-      if(npos.x <= 1 || npos.y <= 1) continue;
+      if(npos.x >= map.dim.x || npos.y >= map.dim.y
+         || npos.x < 0 || npos.y < 0) continue;
 
       //Full Height-Different Between Positions!
       float diff = (map.height(ipos) - map.height(npos));
@@ -43,6 +45,8 @@ struct Particle {
       //The Maximum Difference Allowed between two Neighbors
       SurfType type = (diff > 0)?map.surface(ipos):map.surface(npos);
       SurfParam param = pdict[type];
+
+      if(param.settling == 0) continue;
 
       //The Amount of Excess Difference!
       float excess = abs(diff) - param.maxdiff;
@@ -62,6 +66,8 @@ struct Particle {
         map.remove(npos, param.settling*transfer);
         map.add(ipos, map.pool.get(param.settling*transfer, param.cascades));
       }
+
+  //    map.update(npos, vertexpool);
 
     }
 

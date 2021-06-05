@@ -56,7 +56,7 @@ std::map<SurfType, SurfParam> pdict = {
     SOIL, 0.0f, 0.0f}},
 
   {REDSAND, { 0.4f, vec4(0.85, 0.41, 0.24, 1.0), //vec4(0.88, 0.79, 0.41, 1.0)
-    REDSAND, 1.0f, 0.5f, 0.5f,
+    REDSAND, 0.8f, 0.5f, 0.5f,
     REDSAND, 0.0f,
     REDSAND, 0.0005f, 0.01f,
     REDSAND, 0.002f, 0.0f}},
@@ -76,7 +76,7 @@ std::map<SurfType, SurfParam> pdict = {
   //No Rock-Cascading, Only Erosion
 
   {ROCK, { 1.0f, vec4(0.4, 0.4, 0.4, 1.0),
-    GRAVEL, 0.0f, 0.6f, 0.95f,        //Hydrological Transport
+    GRAVEL, 0.5f, 0.2f, 0.95f,        //Hydrological Transport
     GRAVEL, 0.0f,                     //Hydraulic In-Particle Erosion
     GRAVEL, 10.0f, 0.0f,              //Cascading Height, Rate, Species
     GRAVEL, 0.0f, 0.0f}},             //Wind-Erosion Suspendibility, Abrasion, Type

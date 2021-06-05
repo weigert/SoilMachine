@@ -80,15 +80,22 @@ struct WindParticle : public Particle {
 
     if(contains == AIR)
       return false;
+
+    if(param.suspension == 0.0) //Soil-Type Does Not Interact!
+      return false;
+
     ivec2 npos = round(pos);
 
     //Surface Contact
-    if(height <= map.height(pos)){
+    if(height <= map.height(pos) && param.suspension > 0.0){
 
       double force = length(speed)*(map.height(npos)-height);
 
       double diff = map.remove(ipos, param.suspension*force);
       sediment += (param.suspension*force - diff);
+
+      cascade(ipos, map, vertexpool, true);
+      map.update(ipos, vertexpool);
 
     }
 
@@ -102,10 +109,10 @@ struct WindParticle : public Particle {
       cascade(npos, map, vertexpool, true);
       map.update(npos, vertexpool);
 
-    }
+      cascade(ipos, map, vertexpool, true);
+      map.update(ipos, vertexpool);
 
-    cascade(ipos, map, vertexpool, true);
-    map.update(ipos, vertexpool);
+    }
 
     return true;
 

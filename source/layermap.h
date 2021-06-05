@@ -118,7 +118,7 @@ Layermap(int SEED, ivec2 _dim){
 
   dim = _dim;
   dat = new sec*[dim.x*dim.y];      //Array of Section Pointers
-  pool.reserve(dim.x*dim.y*20);
+  pool.reserve(dim.x*dim.y*255);
 
   //Set the Height!
   FastNoiseLite noise;
@@ -141,7 +141,7 @@ Layermap(int SEED, ivec2 _dim){
     h = 0.5f+noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)(SEED%1000));
     if(h > 0.0) add(ivec2(i, j), pool.get(h, ROCK));
 
-    h = noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+10)%1000));
+    h = 0.3*noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+10)%1000));
     if(h > 0.0) add(ivec2(i, j), pool.get(h, REDSAND));
 
   //  h = 0.2+noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+15)%1000));

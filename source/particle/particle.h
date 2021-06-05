@@ -68,10 +68,8 @@ struct Particle {
       else{
         if(transfer > map.top(npos)->size){
           transfer = map.top(npos)->size;
-      //    recascade = true;
         }
         double diff = map.remove(npos, param.settling*transfer);
-  //      if(diff > 0.0) recascade = true;
         map.add(ipos, map.pool.get(param.settling*transfer, param.cascades));
       }
 

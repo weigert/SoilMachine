@@ -1,9 +1,9 @@
 #include <TinyEngine/TinyEngine>
 #include <TinyEngine/camera>
 
-#define SIZEX 256
-#define SIZEY 256
-#define scale 64.0f
+#define SIZEX 512
+#define SIZEY 512
+#define scale 128.0f
 
 #include "source/vertexpool.h"
 #include "source/layermap.h"
@@ -77,15 +77,15 @@ int main( int argc, char* args[] ) {
 
 		if(paused) return;
 
-	//	for(int i = 0; i < 1500; i++){
-	//    WaterParticle particle(vec2(rand()%map.dim.x, rand()%map.dim.y), map);
-  //    while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
-	//  }
+	for(int i = 0; i < 500; i++){
+	  WaterParticle particle(vec2(rand()%map.dim.x, rand()%map.dim.y), map);
+    while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
+	}
 
-		for(int i = 0; i < 250; i++){
-			WindParticle particle(vec2(rand()%map.dim.x, rand()%map.dim.y), map);
-			while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
-		}
+	for(int i = 0; i < 1000; i++){
+		WindParticle particle(vec2(rand()%map.dim.x, rand()%map.dim.y), map);
+		while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
+	}
 
 	});
 

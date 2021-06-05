@@ -23,13 +23,14 @@ struct Particle {
   bool interact(Layermap& map, Vertexpool<Vertex>& vertexpool);
 
   //This is applied to multiple types of erosion, so I put it in here!
-  void cascade(vec2 pos, Layermap& map, Vertexpool<Vertex>& vertexpool){
+  void cascade(vec2 pos, Layermap& map, Vertexpool<Vertex>& vertexpool, bool updateneighbors = false){
 
     //Neighbor Positions (8-Way)
     const int nx[8] = {-1,-1,-1, 0, 0, 1, 1, 1};
     const int ny[8] = {-1, 0, 1,-1, 1,-1, 0, 1};
 
     glm::ivec2 ipos = pos;
+    bool recascade = false;
 
     //Iterate over all Neighbors
     for(int m = 0; m < 8; m++){
@@ -57,21 +58,33 @@ struct Particle {
 
       //Cap by Maximum Transferrable Amount
       if(diff > 0){
-        transfer = (transfer < map.top(ipos)->size)?transfer:map.top(ipos)->size;
-        map.remove(ipos, param.settling*transfer);
+        if(transfer > map.top(ipos)->size){
+          transfer = map.top(ipos)->size;
+        }
+        double diff = map.remove(ipos, param.settling*transfer);
+        if(diff > 0.0) recascade = true;
         map.add(npos, map.pool.get(param.settling*transfer, param.cascades));
       }
       else{
-        transfer = (transfer < map.top(npos)->size)?transfer:map.top(npos)->size;
-        map.remove(npos, param.settling*transfer);
+        if(transfer > map.top(npos)->size){
+          transfer = map.top(npos)->size;
+      //    recascade = true;
+        }
+        double diff = map.remove(npos, param.settling*transfer);
+  //      if(diff > 0.0) recascade = true;
         map.add(ipos, map.pool.get(param.settling*transfer, param.cascades));
       }
 
-  //    map.update(npos, vertexpool);
+      if(updateneighbors)
+        map.update(npos, vertexpool);
 
     }
 
+    if(recascade)
+      cascade(pos, map, vertexpool, updateneighbors);
+
   }
+
 
 };
 

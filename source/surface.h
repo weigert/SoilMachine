@@ -9,7 +9,7 @@
 #include <map>
 
 enum SurfType {
-  AIR, ROCK, SOIL, SAND, WATER, GRAVEL, SANDSTONE
+  AIR, ROCK, SOIL, SAND, WATER, GRAVEL, SANDSTONE, REDSAND
 };
 
 struct SurfParam {
@@ -55,11 +55,17 @@ std::map<SurfType, SurfParam> pdict = {
     SOIL, 0.00025f, 1.0f,
     SOIL, 0.0f, 0.0f}},
 
-  {SAND, { 0.4f, vec4(0.88, 0.79, 0.41, 1.0),
+  {REDSAND, { 0.4f, vec4(0.85, 0.41, 0.24, 1.0), //vec4(0.88, 0.79, 0.41, 1.0)
+    REDSAND, 1.0f, 0.5f, 0.5f,
+    REDSAND, 0.0f,
+    REDSAND, 0.0005f, 0.01f,
+    REDSAND, 0.002f, 0.0f}},
+
+  {SAND, { 0.4f, vec4(0.88, 0.79, 0.41, 1.0), //
     SAND, 1.0f, 0.8f, 0.2f,
     SAND, 0.0f,
-    SAND, 0.0001f, 0.2f,
-    SAND, 0.0005f, 0.0f}},
+    SAND, 0.001f, 0.01f,
+    SAND, 0.01f, 0.0f}},
 
   {SANDSTONE, { 1.0f, vec4(0.66, 0.38, 0.22, 1.0),
     SANDSTONE, 0.8f, 0.6f, 0.95f,
@@ -72,7 +78,7 @@ std::map<SurfType, SurfParam> pdict = {
   {ROCK, { 1.0f, vec4(0.4, 0.4, 0.4, 1.0),
     GRAVEL, 0.0f, 0.6f, 0.95f,        //Hydrological Transport
     GRAVEL, 0.0f,                     //Hydraulic In-Particle Erosion
-    GRAVEL, 0.001f, 0.4f,            //Cascading Height, Rate, Species
+    GRAVEL, 10.0f, 0.0f,              //Cascading Height, Rate, Species
     GRAVEL, 0.0f, 0.0f}},             //Wind-Erosion Suspendibility, Abrasion, Type
 
   {GRAVEL, { 0.95f, vec4(0.6, 0.6, 0.6, 1.0),

@@ -3,28 +3,40 @@
 
 #define SIZEX 512
 #define SIZEY 512
-#define scale 128.0f
+#define SCALE 128
 
-#include "source/vertexpool.h"
+#include "source/include/vertexpool.h"
+#include "source/include/scene.h"
+
 #include "source/layermap.h"
-
 #include "source/particle/water.h"
 #include "source/particle/wind.h"
-#include "source/scene.h"
 
 int main( int argc, char* args[] ) {
 
+	cout<<"Launching SoiMachine V1.0"<<endl;
+
+	//Get Seed
 	srand(time(NULL));
+
+	int SEED;
+	if(argc > 1)
+		SEED = stoi(args[1]);
+	else
+		SEED = rand();
+
+	cout<<"SEED: "<<SEED<<endl;
 
 	//Initialize a Window
 	Tiny::window("Soil Machine", 1200, 800);
   cam::near = -800.0f;
 	cam::far = 800.0f;
 	cam::moverate = 10.0f;
-  cam::look = glm::vec3(SIZEX/2, scale/2, SIZEY/2);
+  cam::look = glm::vec3(SIZEX/2, SCALE/2, SIZEY/2);
 	cam::init(10, cam::ORTHO);
 
 	bool paused = true;
+
 	Tiny::event.handler = [&](){
 
 		cam::handler();
@@ -36,9 +48,9 @@ int main( int argc, char* args[] ) {
 
 	Tiny::view.interface = [&](){};
 
-  //Define Layermap, Construct Vertexpool
-  Vertexpool<Vertex> vertexpool(SIZEX*SIZEY, 1);
-  Layermap map(4522, glm::ivec2(SIZEX, SIZEY), vertexpool);
+	//Define Layermap, Construct Vertexpool
+	Vertexpool<Vertex> vertexpool(SIZEX*SIZEY, 1);
+	Layermap map(SEED, glm::ivec2(SIZEX, SIZEY), vertexpool);
 
   //Visualization Shader
   Shader shader({"source/shader/default.vs", "source/shader/default.fs"}, {"in_Position", "in_Normal", "in_Color"});
@@ -77,15 +89,15 @@ int main( int argc, char* args[] ) {
 
 		if(paused) return;
 
-	for(int i = 0; i < 1000; i++){
-	  WaterParticle particle(vec2(rand()%map.dim.x, rand()%map.dim.y), map);
-    while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
-	}
+		for(int i = 0; i < 400; i++){
+		  WaterParticle particle(vec2(rand()%map.dim.x, rand()%map.dim.y), map);
+	    while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
+		}
 
-	for(int i = 0; i < 1500; i++){
-		WindParticle particle(vec2(rand()%map.dim.x, rand()%map.dim.y), map);
-		while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
-	}
+		for(int i = 0; i < 600; i++){
+			WindParticle particle(vec2(rand()%map.dim.x, rand()%map.dim.y), map);
+			while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
+		}
 
 	});
 

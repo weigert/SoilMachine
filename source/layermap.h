@@ -3,18 +3,27 @@
                           Layermap Data Structure
 ================================================================================
 
-Continuous Run-Length Encoded Heightmap with Memory Pooled RLE Components
+Concept: Heightmap representet as a grid. Each grid element points to the "top"
+element of a double-linked-list of RLE components which contain the layer meta data.
+These components are additionally memory pooled for efficiency.
+
 Utilizes a vertexpool to avoid remeshing when updating heightmap information
 
 */
 
 #include "include/FastNoiseLite.h"
+
 #include <glm/glm.hpp>
 using namespace glm;
+using namespace std;
+
+/*
+================================================================================
+                  RLE Linked-List Element and Memory Pool
+================================================================================
+*/
 
 #include "surface.h"
-
-// RLE Section and Memory Pool
 
 struct sec {
 
@@ -44,52 +53,67 @@ void reset(){
 class secpool {
 public:
 
+int size;               //Number of Total Elements
+sec* start = NULL;      //Point to Start of Pool
+deque<sec*> free;       //Queue of Free Elements
 
-  sec* start = NULL;
-  int size;
-  deque<sec*> free;
-  secpool(){}
+secpool(){}             //Construct
+secpool(const int N){   //Construct with Size
+  reserve(N);
+}
+~secpool(){
+  free.clear();
+  delete[] start;
+}
 
-  secpool(const int N){
-    reserve(N);
+//Create the Memory Pool
+void reserve(const int N){
+  start = new sec[N];
+  for(int i = 0; i < N; i++)
+    free.push_front(start+i);
+  size = N;
+}
+
+//Retrieve Element, Construct in Place
+template<typename... Args>
+sec* get(Args && ...args){
+
+  if(free.empty()){
+    cout<<"Memory Pool Out-Of-Elements"<<endl;
+    return NULL;
   }
 
-  void reserve(const int N){
-    start = new sec[N];
-    for(int i = 0; i < N; i++)
-      free.push_front(start+i);
-    size = N;
-  }
+  sec* E = free.back();
+  try{ new (E)sec(forward<Args>(args)...); }
+  catch(...) { throw; }
+  free.pop_back();
+  return E;
 
-  //Construct-in-place and fetch
-  template<typename... Args>
-  sec* get(Args && ...args){
-    if(free.empty()){
-      std::cout<<"Memory Pool Out-Of-Elements"<<std::endl;
-      return NULL;
-    }
-    sec* E = free.back();
-    try{ new (E)sec(forward<Args>(args)...); }
-    catch(...) { throw; }
-    free.pop_back();
-    return E;
-  }
+}
 
-  void unget(sec* E){
-    E->reset();
-    free.push_front(E);
-  }
+//Return Element
+void unget(sec* E){
+  E->reset();
+  free.push_front(E);
+}
 
 };
 
-//Layermap Data Structure with Queries
+/*
+================================================================================
+                      Queriable Layermap Datastructure
+================================================================================
+*/
 
 class Layermap {
+
+private:
+
+sec** dat;                                //Raw Data Grid
 
 public:
 
 ivec2 dim;                                //Size
-sec** dat;                                //Data
 secpool pool;                             //Data Pool
 
 //Queries
@@ -101,12 +125,12 @@ SurfType surface(ivec2);                  //Surface Type at Position
 
 //Modifiers
 void add(ivec2, sec*);                    //Add Layer at Position
-double remove(ivec2, double);               //Remove Layer at Position
-sec* top(ivec2 pos){
+double remove(ivec2, double);             //Remove Layer at Position
+sec* top(ivec2 pos){                      //Top Element at Position
   return dat[pos.x*dim.y+pos.y];
 }
 
-//Meshing
+//Meshing / Visualization
 uint* section = NULL;                     //Vertexpool Section Pointer
 void meshpool(Vertexpool<Vertex>&);       //Mesh based on Vertexpool
 void update(ivec2, Vertexpool<Vertex>&);  //Update Vertexpool at Position (No Remesh)
@@ -115,8 +139,6 @@ public:
 
 //Constructors
 Layermap(int SEED, ivec2 _dim){
-
-  std::cout<<"SEED "<<SEED<<std::endl;
 
   dim = _dim;
   dat = new sec*[dim.x*dim.y];      //Array of Section Pointers
@@ -231,33 +253,33 @@ double Layermap::remove(ivec2 pos, double h){
 vec3 Layermap::normal(ivec2 pos){
 
   vec3 n = vec3(0);
-  vec3 p = vec3(pos.x, scale*height(pos), pos.y);
+  vec3 p = vec3(pos.x, SCALE*height(pos), pos.y);
   int k = 0;
 
   if(pos.x > 0 && pos.y > 0){
-    vec3 b = vec3(pos.x-1, scale*height(pos-ivec2(1,0)), pos.y);
-    vec3 c = vec3(pos.x, scale*height(pos-ivec2(0,1)), pos.y-1);
+    vec3 b = vec3(pos.x-1, SCALE*height(pos-ivec2(1,0)), pos.y);
+    vec3 c = vec3(pos.x, SCALE*height(pos-ivec2(0,1)), pos.y-1);
     n += cross(c-p, b-p);
     k++;
   }
 
   if(pos.x > 0 && pos.y < dim.y - 1){
-    vec3 b = vec3(pos.x-1, scale*height(pos-ivec2(1,0)), pos.y);
-    vec3 c = vec3(pos.x, scale*height(pos+ivec2(0,1)), pos.y+1);
+    vec3 b = vec3(pos.x-1, SCALE*height(pos-ivec2(1,0)), pos.y);
+    vec3 c = vec3(pos.x, SCALE*height(pos+ivec2(0,1)), pos.y+1);
     n -= cross(c-p, b-p);
     k++;
   }
 
   if(pos.x < dim.x-1 && pos.y > 0){
-    vec3 b = vec3(pos.x+1, scale*height(pos+ivec2(1,0)), pos.y);
-    vec3 c = vec3(pos.x, scale*height(pos-ivec2(0,1)), pos.y-1);
+    vec3 b = vec3(pos.x+1, SCALE*height(pos+ivec2(1,0)), pos.y);
+    vec3 c = vec3(pos.x, SCALE*height(pos-ivec2(0,1)), pos.y-1);
     n -= cross(c-p, b-p);
     k++;
   }
 
   if(pos.x < dim.x-1 && pos.y < dim.y-1){
-    vec3 b = vec3(pos.x+1, scale*height(pos+ivec2(1,0)), pos.y);
-    vec3 c = vec3(pos.x, scale*height(pos+ivec2(0,1)), pos.y+1);
+    vec3 b = vec3(pos.x+1, SCALE*height(pos+ivec2(1,0)), pos.y);
+    vec3 c = vec3(pos.x, SCALE*height(pos+ivec2(0,1)), pos.y+1);
     n += cross(c-p, b-p);
     k++;
   }
@@ -294,8 +316,6 @@ double Layermap::height(ivec2 pos){
 }
 
 double Layermap::height(vec2 pos){
-
-  //std::cout<<pos.x<<" "<<pos.y<<std::endl;
 
   double h = 0.0f;
   ivec2 p = floor(pos);
@@ -341,7 +361,7 @@ void Layermap::meshpool(Vertexpool<Vertex>& vertexpool){
 void Layermap::update(ivec2 p, Vertexpool<Vertex>& vertexpool){
 
   vertexpool.fill(section, p.x*dim.y+p.y,
-    vec3(p.x, scale*height(p), p.y),
+    vec3(p.x, SCALE*height(p), p.y),
     normal(p),
     pdict[surface(p)].color
   );

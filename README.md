@@ -48,6 +48,8 @@ SoilMachine is visualized using `TinyEngine`. Install `TinyEngine` using the ins
 
     https://github.com/weigert/TinyEngine
     
+TinyEngine is the only dependency (besides sub-dependencies).
+
 Once that works, build SoilMachine using the makefile and run in place (no install):
 
     cd ~
@@ -60,10 +62,14 @@ Once that works, build SoilMachine using the makefile and run in place (no insta
 
 The GUI is currently being overhauled.
 
-  P: Toggle Pause
+    P: Toggle Pause
   
-  Scroll-Y: Zoom
-  Scroll-X: Camera Angle
-  Up / Down Arrow: Camera Tilt
-  C / V: Move Camera Up / Down
-  WASD: Move Camera in Plane
+    Scroll-Y: Zoom
+    Scroll-X: Camera Angle
+    Up / Down Arrow: Camera Tilt
+    C / V: Move Camera Up / Down
+    WASD: Move Camera in Plane
+    
+### License
+
+MIT License

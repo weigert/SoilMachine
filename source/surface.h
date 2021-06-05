@@ -55,7 +55,7 @@ std::map<SurfType, SurfParam> pdict = {
     SOIL, 0.00025f, 1.0f,
     SOIL, 0.0f, 0.0f}},
 
-  {REDSAND, { 0.4f, vec4(0.85, 0.41, 0.24, 1.0), //vec4(0.88, 0.79, 0.41, 1.0)
+  {REDSAND, { 0.4f, vec4(0.86, 0.52, 0.34, 1.0), //vec4(0.88, 0.79, 0.41, 1.0)
     REDSAND, 0.8f, 0.5f, 0.5f,
     REDSAND, 0.0f,
     REDSAND, 0.0005f, 0.01f,

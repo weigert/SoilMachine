@@ -1,4 +1,4 @@
-# LayeredErosion
+# SoilMachine
 
 Next iteration of an advanced, modular, coupled geomorphological simulation for erosive surface and sub-surface phenomena.
 

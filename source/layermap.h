@@ -116,6 +116,8 @@ public:
 //Constructors
 Layermap(int SEED, ivec2 _dim){
 
+  std::cout<<"SEED "<<SEED<<std::endl;
+
   dim = _dim;
   dat = new sec*[dim.x*dim.y];      //Array of Section Pointers
   pool.reserve(dim.x*dim.y*255);

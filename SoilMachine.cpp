@@ -1,6 +1,9 @@
 #include <TinyEngine/TinyEngine>
 #include <TinyEngine/camera>
 
+#define WIDTH 1200
+#define HEIGHT 1000
+
 #define SIZEX 512
 #define SIZEY 512
 #define SCALE 128
@@ -28,7 +31,7 @@ int main( int argc, char* args[] ) {
 	cout<<"SEED: "<<SEED<<endl;
 
 	//Initialize a Window
-	Tiny::window("Soil Machine", 1200, 1000);
+	Tiny::window("Soil Machine", WIDTH, HEIGHT);
   cam::near = -800.0f;
 	cam::far = 800.0f;
 	cam::moverate = 10.0f;
@@ -60,8 +63,11 @@ int main( int argc, char* args[] ) {
   //Visualization Shader
   Shader shader({"source/shader/default.vs", "source/shader/default.fs"}, {"in_Position", "in_Normal", "in_Color"});
 	Shader depth({"source/shader/depth.vs", "source/shader/depth.fs"}, {"in_Position"});
+	Shader effect({"source/shader/effect.vs", "source/shader/effect.fs"}, {"in_Quad", "in_Tex"});
 
-	Billboard shadow(2000, 2000, false); //800x800, depth only
+	Billboard image(WIDTH, HEIGHT); 			//1200x1000
+	Billboard shadow(2000, 2000, false); 	//800x800, depth only
+	Square2D flat;												//For Billboard Rendering
 
 	//Define the rendering pipeline
 	Tiny::view.pipeline = [&](){
@@ -72,8 +78,10 @@ int main( int argc, char* args[] ) {
     depth.uniform("dmvp", scene::dp * scene::dv);
 		vertexpool.render(GL_TRIANGLES);
 
-		Tiny::view.target(scene::skycolor);	//Clear Screen to white
-    shader.use();
+		image.target(scene::skycolor);
+	//	Tiny::view.target(scene::skycolor);	//Clear Screen to white
+
+	  shader.use();
 
     shader.uniform("model", glm::mat4(1));
 		shader.uniform("vp", cam::vp);
@@ -86,6 +94,13 @@ int main( int argc, char* args[] ) {
 		shader.texture("shadowmap", shadow.depth);
 
 		vertexpool.render(GL_TRIANGLES);
+
+		Tiny::view.target(scene::skycolor);	//Clear Screen to white
+		effect.use();
+		effect.uniform("skycolor", scene::skycolor);
+		effect.texture("imageTexture", image.texture);
+		effect.texture("depthTexture", image.depth);
+		flat.render();
 
 	};
 

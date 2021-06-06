@@ -35,9 +35,9 @@ struct WindParticle : public Particle {
   SurfType contains;
   SurfParam param;
 
-  const double gravity = 0.05;
-  const double winddominance = 0.5;
-  const double windfriction = 0.5;
+  const double gravity = 0.01;
+  const double winddominance = 0.1;
+  const double windfriction = 0.9;
   const double minsed = 0.0001;
 
   bool move(Layermap& map, Vertexpool<Vertex>& vertexpool){
@@ -78,141 +78,42 @@ struct WindParticle : public Particle {
 
   bool interact(Layermap& map, Vertexpool<Vertex>& vertexpool){
 
-    if(contains == AIR)
+    //Non-Suspending
+    if(pdict[contains].suspension == 0.0)
       return false;
-
-    if(param.suspension == 0.0) //Soil-Type Does Not Interact!
-      return false;
-
-    ivec2 npos = round(pos);
-
-    //Surface Contact
-    if(height <= map.height(pos) && param.suspension > 0.0){
-
-      double force = length(speed)*(map.height(npos)-height);
-
-      double diff = map.remove(ipos, param.suspension*force);
-      sediment += (param.suspension*force - diff);
-
-      cascade(ipos, map, vertexpool, true);
-      map.update(ipos, vertexpool);
-
-    }
-
-    if(param.suspension*sediment > minsed){
-
-      sediment -= param.suspension*sediment;
-
-      map.add(npos, map.pool.get(0.5f*param.suspension*sediment, contains));
-      map.add(ipos, map.pool.get(0.5f*param.suspension*sediment, contains));
-
-      cascade(npos, map, vertexpool, true);
-      map.update(npos, vertexpool);
-
-      cascade(ipos, map, vertexpool, true);
-      map.update(ipos, vertexpool);
-
-    }
-
-    return true;
-
-  }
-
-};
-
-/*
-struct WindParticle : public Particle {
-
-  WindParticle(vec2 p):Particle(p){}
-
-  //Core Properties
-  const vec3 pspeed = normalize(vec3(1,0,-1));
-  vec3 speed = pspeed;
-  double height = 0.0;
-  double sediment = 0.0; //Sediment Mass
-
-  int ncycles = 5000;
-
-  //Helper Properties
-  ivec2 ipos;
-  SurfParam param;
-
-  //Parameters
-  const double gravity = 0.05;
-
-  bool move(Layermap& map, Vertexpool<Vertex>& vertexpool){
-
-    //Integer Position
-    ipos = round(pos);
-    param = pdict[map.surface(ipos)];
-
-    //Surface Height
-    double sheight = map.height(ipos);
-    if(height < sheight) height = sheight;
-
-    vec3 n = map.normal(ipos);
-
-    //Movement Mechanics
-
-    if(height > sheight)    //Flying Movement
-      speed.y -= gravity;   //Gravity
-    else{                   //Contact Movement
-      speed = mix(speed, pspeed, 0.1f);
-      speed = mix(speed, cross(cross(speed,n),n), 0.2f);
-      speed = normalize(speed);
-    }
-
-    pos += vec2(speed.x, speed.z);
-    height += speed.y;
-
-    //Out-Of-Bounds
-    if(!all(greaterThanEqual(pos, vec2(0))) ||
-       !all(lessThan((ivec2)pos, map.dim-1)))
-       return false;
-
-    return true;
-
-  }
-
-  bool interact(Layermap& map, Vertexpool<Vertex>& vertexpool){
 
     ivec2 npos = round(pos);
 
     //Surface Contact
     if(height <= map.height(pos)){
 
-      double force = (map.height(npos)-height);
+      //If this surface can conribute to this particle
+      if(param.transports == contains){
 
-      //Abrasion
-    //  if(param.abrasion > 0.0){
-    //    map.remove(ipos, param.abrasion*force*sediment);
-    //    map.add(ipos, map.pool.get(param.abrasion*force*sediment, param.abrades));
-    //    param = pdict[map.surface(npos)];
-    //  }
-    //  else{
+        double force = length(speed)*(map.height(npos)-height)*(1.0f-sediment);
 
-      //Remove Sediment Amount
-      double diff = (param.suspension*force-sediment);
-      sediment += diff;
-      map.remove(ipos, diff);
-      cascade(ipos, map, vertexpool, true);
-      map.update(ipos, vertexpool);
+        double diff = map.remove(ipos, param.suspension*force);
+        sediment += (param.suspension*force - diff);
+
+        cascade(ipos, map, vertexpool, true);
+        map.update(ipos, vertexpool);
+
+      }
 
     }
 
-    //Flying Particle
-    else{
+    else {
 
-      sediment -= param.suspension*sediment;
+      sediment -= pdict[contains].suspension*sediment;
 
-      map.add(npos, map.pool.get(0.5f*param.suspension*sediment, param.abrades));
-      map.add(ipos, map.pool.get(0.5f*param.suspension*sediment, param.abrades));
-      cascade(npos, map, vertexpool, true);
+      map.add(npos, map.pool.get(0.5f*pdict[contains].suspension*sediment, contains));
+      map.add(ipos, map.pool.get(0.5f*pdict[contains].suspension*sediment, contains));
+
       cascade(ipos, map, vertexpool, true);
-      map.update(npos, vertexpool);
       map.update(ipos, vertexpool);
 
-      if(sediment < 1E-6) return false;
+      cascade(npos, map, vertexpool, true);
+      map.update(npos, vertexpool);
 
     }
 
@@ -221,4 +122,3 @@ struct WindParticle : public Particle {
   }
 
 };
-*/

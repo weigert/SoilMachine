@@ -142,7 +142,7 @@ Layermap(int SEED, ivec2 _dim){
 
   dim = _dim;
   dat = new sec*[dim.x*dim.y];      //Array of Section Pointers
-  pool.reserve(dim.x*dim.y*255);
+  pool.reserve(dim.x*dim.y*256);
 
   //Set the Height!
   FastNoiseLite noise;
@@ -163,7 +163,8 @@ Layermap(int SEED, ivec2 _dim){
     double h;
 
     h = 0.5f+noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)(SEED%10000));
-    if(h > 0.0) add(ivec2(i, j), pool.get(h, ROCK));
+    //if(h > 0.0) add(ivec2(i, j), pool.get(h, ROCK));
+    if(h > 0.0) add(ivec2(i, j), pool.get(h, REDSAND));
 
   //  h = 0.5f+noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+50)%10000));
   //  if(h > 0.0) add(ivec2(i, j), pool.get(h, SAND));
@@ -242,8 +243,26 @@ void Layermap::add(ivec2 pos, sec* E){
 
 double Layermap::remove(ivec2 pos, double h){
 
+  //No Element to Remove
   if(dat[pos.x*dim.y+pos.y] == NULL)
-    return 0.0; //Return Remaining Reight
+    return 0.0;
+
+  //Element Needs Removal
+  if(dat[pos.x*dim.y+pos.y]->size <= 0.0){
+    sec* E = dat[pos.x*dim.y+pos.y];
+    dat[pos.x*dim.y+pos.y] = E->prev; //May be NULL
+    pool.unget(E);
+    return 0.0;
+  }
+
+  //No Removal Necessary
+  if(h <= 0.0)
+    return 0.0;
+
+
+  //Remove From Element
+
+  //Element Contains No Information
 
   double diff = h - dat[pos.x*dim.y+pos.y]->size;
   dat[pos.x*dim.y+pos.y]->size -= h;

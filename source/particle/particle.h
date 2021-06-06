@@ -29,7 +29,7 @@ struct Particle {
     const int nx[8] = {-1,-1,-1, 0, 0, 1, 1, 1};
     const int ny[8] = {-1, 0, 1,-1, 1,-1, 0, 1};
 
-    glm::ivec2 ipos = pos;
+    ivec2 ipos = round(pos);
     bool recascade = false;
 
     //Iterate over all Neighbors
@@ -42,35 +42,35 @@ struct Particle {
 
       //Full Height-Different Between Positions!
       float diff = (map.height(ipos) - map.height(npos));
+      if(diff == 0)
+        continue;
 
       //The Maximum Difference Allowed between two Neighbors
       SurfType type = (diff > 0)?map.surface(ipos):map.surface(npos);
       SurfParam param = pdict[type];
 
-      if(param.settling == 0) continue;
-
       //The Amount of Excess Difference!
       float excess = abs(diff) - param.maxdiff;
-      if(excess <= 0) continue; //No Excess
+      if(excess <= 0)  //No Excess
+        continue;
 
       //Actual Amount Transferred
-      float transfer = excess / 2.0f;
+      float transfer = param.settling * excess / 2.0f;
 
       //Cap by Maximum Transferrable Amount
       if(diff > 0){
-        if(transfer > map.top(ipos)->size){
+        if(transfer > map.top(ipos)->size)
           transfer = map.top(ipos)->size;
-        }
-        double diff = map.remove(ipos, param.settling*transfer);
+        double diff = map.remove(ipos, transfer);
         if(diff > 0.0) recascade = true;
-        map.add(npos, map.pool.get(param.settling*transfer, param.cascades));
+        map.add(npos, map.pool.get(transfer, param.cascades));
       }
       else{
-        if(transfer > map.top(npos)->size){
+        if(transfer > map.top(npos)->size)
           transfer = map.top(npos)->size;
-        }
-        double diff = map.remove(npos, param.settling*transfer);
-        map.add(ipos, map.pool.get(param.settling*transfer, param.cascades));
+        double diff = map.remove(npos, transfer);
+        if(diff > 0.0) recascade = true;
+        map.add(ipos, map.pool.get(transfer, param.cascades));
       }
 
       if(updateneighbors)

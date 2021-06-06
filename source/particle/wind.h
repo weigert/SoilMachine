@@ -22,7 +22,7 @@ struct WindParticle : public Particle {
   }
 
   //Core Properties
-  const vec3 pspeed = vec3(-2,0,2);
+  const vec3 pspeed = vec3(-2,0,1);
   vec3 speed = pspeed;
   double sediment = 0.0;  //Sediment Mass
   double height = 0.0;    //Particle Height
@@ -36,8 +36,8 @@ struct WindParticle : public Particle {
   SurfParam param;
 
   const double gravity = 0.05;
-  const double winddominance = 0.2;
-  const double windfriction = 0.2;
+  const double winddominance = 0.5;
+  const double windfriction = 0.5;
   const double minsed = 0.0001;
 
   bool move(Layermap& map, Vertexpool<Vertex>& vertexpool){

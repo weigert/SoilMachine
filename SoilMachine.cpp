@@ -14,7 +14,7 @@
 
 int main( int argc, char* args[] ) {
 
-	cout<<"Launching SoiMachine V1.0"<<endl;
+	cout<<"Launching SoilMachine V1.0"<<endl;
 
 	//Get Seed
 	srand(time(NULL));
@@ -28,12 +28,17 @@ int main( int argc, char* args[] ) {
 	cout<<"SEED: "<<SEED<<endl;
 
 	//Initialize a Window
-	Tiny::window("Soil Machine", 1200, 800);
+	Tiny::window("Soil Machine", 1200, 1000);
   cam::near = -800.0f;
 	cam::far = 800.0f;
 	cam::moverate = 10.0f;
   cam::look = glm::vec3(SIZEX/2, SCALE/2, SIZEY/2);
-	cam::init(10, cam::ORTHO);
+	cam::init(3, cam::ORTHO);
+
+	cam::rot = 45.0f;
+	cam::roty = 45.0f;
+	cam::update();
+
 
 	bool paused = true;
 
@@ -89,15 +94,15 @@ int main( int argc, char* args[] ) {
 
 		if(paused) return;
 
-		for(int i = 0; i < 400; i++){
+		for(int i = 0; i < 1000; i++){
 		  WaterParticle particle(vec2(rand()%map.dim.x, rand()%map.dim.y), map);
 	    while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
 		}
 
-		for(int i = 0; i < 600; i++){
-			WindParticle particle(vec2(rand()%map.dim.x, rand()%map.dim.y), map);
-			while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
-		}
+	//	for(int i = 0; i < 1000; i++){
+	//		WindParticle particle(vec2(rand()%map.dim.x, rand()%map.dim.y), map);
+	//		while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
+	//	}
 
 	});
 

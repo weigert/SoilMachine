@@ -1,6 +1,8 @@
 # SoilMachine
 
-Advanced, modular, coupled geomorpohology simulator for real-time procedural terrain generation.
+Advanced, modular, coupled geomorpohology simulator for real-time procedural terrain generation in C++.
+
+Visualization with [TinyEngine](https://github.com/weigert/TinyEngine).
 
 Article: **Coming Soon(ish)**
 

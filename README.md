@@ -1,36 +1,75 @@
 # SoilMachine
 
-Next iteration of an advanced, modular, coupled geomorphological simulation for erosive surface and sub-surface phenomena.
+Advanced, modular, coupled geomorpohology simulator for real-time procedural terrain generation.
 
-It should combine features of my previous erosion systems into a single, real-time procedural terrain generator in a modular fashion with low complexity but high realism.
+Article: **Coming Soon(ish)**
 
-Most significantly, this system introduces a new concept to bring the simulations from 2.5D (i.e. 2D heightmaps) to 2.99D! This opens up many new possibilities without significantly more complexity.
+## Description
 
-The end goal is to have a single real-time terrain generator that combines all of my previous concepts. This system is a first step towards that by providing a framework for simulating the surface phenomena, based on precipitation data **as an input and** an initial terrain.
+SoilMachine is a unified geomorphology simulator for procedural terrain. It represents the culmination of a lot of work on particle-based transport and erosion systems. Most importantly, a new layered terrain data structure allows for modeling surface and sub-surface phenomena based on particle transport, which exceeds the functionality of voxels.
+
+SoilMachine is written from scratch in very little code and visualized with [TinyEngine](https://github.com/weigert/TinyEngine) using a technique called vertex pooling, which obviates the need to remesh the heightmap (ever). It is designed to be modular and expandable.
 
 This repo is currently in development and will probably not be done soon but I am publishing it so updates can be followed live for anybody who is interested.
 
-## Planned Features
+### Screenshots
 
-### Vertex Pooling
 
-New rendering technique inspired by voxel engines / AZDO techniques using persistently mapped buffers to avoid terrain remeshing. Should allow for super fast visualization.
 
-### From 2.5D to 2.99D Terrain
+### Features
 
-New layered-terrain data structure using memory pooling. Inspired by run-length encoding of voxel worlds, but continuous and non-discrete. Should allow for more detailed simulation and **almost** 3D phenomena (including e.g. ovehangs), but without having to resort to discrete voxels, which are more memory intensive and less flexible.
+**Implemented**
 
-### Coupled Modular Erosion
+- Vertexpool based heightmap visualization (OpenGL AZDO) to eliminate remesh cost
+- Layered terrain data structure using memory pooled, run-length encoded sediment sections as a linked list on a grid
+- Modular soil type description and "erosion chains"
+- Modular description of transport types using a particle base class
+  - Wind erosion particles based on [Particle-Based Wind Erosion](https://github.com/weigert/SimpleWindErosion)
+  - Hydraulic erosion particles based on [Particle-Based Erosion](https://github.com/weigert/SimpleErosion)
 
-First experiments with particle parallelization / lagrangian conservative transport phenomena, allowing for coupling hydrological erosion with wind erosion on a single height-map.
+**Planned**
 
-## Future Directions
+- Parallelization of the particle base class terrain interaction
+- Sediment compaction / conversion
+- Water-logging using sediment porosity
+- Implementation of multiple water tables based on [Particle-Based Hydrology](https://github.com/weigert/SimpleHydrology)
 
-This first experiment, once polished, should then be able to open up new geomorphological possibilities such as:
+- GUI Interface for Initial Terrain
+- GUI Interface for Defining Sediment Types
+- Data Export
 
-- Cave formation simulation
-- Snow compaction
-- Sediment compaction and rock layer formation
-- Subterranean flow and waterlogging
+## Utilization
 
-without significantly more complexity from previous systems.
+Tested on Ubuntu20 LTS.
+
+### Building & Running
+
+SoilMachine is visualized using `TinyEngine`. Install `TinyEngine` using the instructions at the repo:
+
+    https://github.com/weigert/TinyEngine
+    
+TinyEngine is the only dependency (besides sub-dependencies).
+
+Once that works, build SoilMachine using the makefile and run in place (no install):
+
+    cd ~
+    git clone https://github.com/weigert/SoilMachine
+    cd SoilMachine
+    make all
+    ./soilmachine
+
+### Controls
+
+The GUI is currently being overhauled.
+
+    P: Toggle Pause
+  
+    Scroll-Y: Zoom
+    Scroll-X: Camera Angle
+    Up / Down Arrow: Camera Tilt
+    C / V: Move Camera Up / Down
+    WASD: Move Camera in Plane
+    
+### License
+
+MIT License

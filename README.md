@@ -2,13 +2,13 @@
 
 Advanced, modular, coupled geomorpohology simulator for real-time procedural terrain generation.
 
-![Banner](https://github.com/weigert/SoilMachine/blob/master/screenshots/banner.png)
-
 Article: **Coming Soon(ish)**
 
 ## Description
 
-SoilMachine is a unified geomorphology simulator for procedural terrain. It represents the culmination of a lot of work on particle-based transport and erosion systems. Most importantly, a new layered terrain data structure allows for modeling surface and sub-surface phenomena based on particle transport, which exceeds the functionality of voxels.
+SoilMachine is a unified geomorphology simulator for procedural terrain. It represents the culmination of a lot of work on particle-based transport and erosion systems (**hydraulic and wind**). Most importantly, a new **layered terrain** data structure allows for modeling **surface and sub-surface phenomena** based on **particle transport** with **multiple soil types**, which exceeds the functionality of voxels.
+
+![Banner](https://github.com/weigert/SoilMachine/blob/master/screenshots/banner.png)
 
 SoilMachine is written from scratch in very little code and visualized with [TinyEngine](https://github.com/weigert/TinyEngine) using a technique called vertex pooling, which obviates the need to remesh the heightmap (ever). It is designed to be modular and expandable.
 
@@ -16,7 +16,27 @@ This repo is currently in development and will probably not be done soon but I a
 
 ### Screenshots
 
+Sped-up (5x) erosion of sand on rock. Hydraulic erosion moves sand and gravel, and breaks rock into gravel. Wind erosion moves the sand. Sand and gravel both undergo sediment cascading:
 
+![Sand on Rock 1](https://github.com/weigert/SoilMachine/blob/master/screenshots/SoilMachine.gif)
+
+Different Scene:
+
+![Sand on Rock 2](https://github.com/weigert/SoilMachine/blob/master/screenshots/SoilMachine2.gif)
+
+SoilMachine can handle multiple soil types undergoing the same type of erosion. Here is an animation (5x speed) of two different types of sand being moved by the wind:
+
+![Multisand](https://github.com/weigert/SoilMachine/blob/master/screenshots/SoilMachineMultiSand.gif)
+
+SoilMachine lets you define "sediment chains", i.e. rock erodes to gravel erodes to soil. Here is an animation (5x speed) of such a 3-length erosion chain undergoing hydraulic erosion (none of these soil types are effected by wind):
+
+![Multisand](https://github.com/weigert/SoilMachine/blob/master/screenshots/SoilMachine3.gif)
+
+SoilMachine elegantly combines hydraulic and wind erosion into a single structure, so we can show what happens if one effect dominates over another on the same landscape. 
+
+Here is an animation showing 2 million simulated particles on sand, with a varying fraction of wind particles vs. water particles. The landscape continuously morphs between wind dominant (i.e. dunes) vs. water dominant (i.e. mountain-like):
+
+![Wind vs. Water](https://github.com/weigert/SoilMachine/blob/master/screenshots/Hydraulic2Wind.gif)
 
 ### Features
 

@@ -14,30 +14,6 @@ SoilMachine is written from scratch in very little code and visualized with [Tin
 
 This repo is currently in development and will probably not be done soon but I am publishing it so updates can be followed live for anybody who is interested.
 
-### Screenshots
-
-Sped-up (5x) erosion of sand on rock. Hydraulic erosion moves sand and gravel, and breaks rock into gravel. Wind erosion moves the sand. Sand and gravel both undergo sediment cascading:
-
-![Sand on Rock 1](https://github.com/weigert/SoilMachine/blob/master/screenshots/SoilMachine.gif)
-
-Different Scene:
-
-![Sand on Rock 2](https://github.com/weigert/SoilMachine/blob/master/screenshots/SoilMachine2.gif)
-
-SoilMachine can handle multiple soil types undergoing the same type of erosion. Here is an animation (5x speed) of two different types of sand being moved by the wind:
-
-![Multisand](https://github.com/weigert/SoilMachine/blob/master/screenshots/SoilMachineMultiSand.gif)
-
-SoilMachine lets you define "sediment chains", i.e. rock erodes to gravel erodes to soil. Here is an animation (5x speed) of such a 3-length erosion chain undergoing hydraulic erosion (none of these soil types are effected by wind):
-
-![Multisand](https://github.com/weigert/SoilMachine/blob/master/screenshots/SoilMachine3.gif)
-
-SoilMachine elegantly combines hydraulic and wind erosion into a single structure, so we can show what happens if one effect dominates over another on the same landscape. 
-
-Here is an animation showing 2 million simulated particles on sand, with a varying fraction of wind particles vs. water particles. The landscape continuously morphs between wind dominant (i.e. dunes) vs. water dominant (i.e. mountain-like):
-
-![Wind vs. Water](https://github.com/weigert/SoilMachine/blob/master/screenshots/Hydraulic2Wind.gif)
-
 ### Features
 
 **Implemented**
@@ -60,11 +36,22 @@ Here is an animation showing 2 million simulated particles on sand, with a varyi
 - GUI Interface for Defining Sediment Types
 - Data Export
 
-## Utilization
+### Screenshots
+
+Some example outputs:
+
+![Output 1](https://github.com/weigert/SoilMachine/blob/master/screenshots/Output1.png)
+
+![Output 2](https://github.com/weigert/SoilMachine/blob/master/screenshots/Output2.png)
+
+![Output 3](https://github.com/weigert/SoilMachine/blob/master/screenshots/Output3.png)
+
+
+### Utilization
 
 Tested on Ubuntu20 LTS.
 
-### Building & Running
+#### Building & Running
 
 SoilMachine is visualized using `TinyEngine`. Install `TinyEngine` using the instructions at the repo:
 
@@ -80,18 +67,20 @@ Once that works, build SoilMachine using the makefile and run in place (no insta
     make all
     ./soilmachine
 
-### Controls
+#### Controls
 
 The GUI is currently being overhauled.
 
-    P: Toggle Pause
+    P: Toggle Pause (Paused by default!!!)
   
     Scroll-Y: Zoom
     Scroll-X: Camera Angle
     Up / Down Arrow: Camera Tilt
     C / V: Move Camera Up / Down
     WASD: Move Camera in Plane
-    
-### License
+
+    ESC: Toggle GUI
+
+## License
 
 MIT License

@@ -2,6 +2,8 @@
 
 Advanced, modular, coupled geomorpohology simulator for real-time procedural terrain generation.
 
+![Banner](https://github.com/weigert/SoilMachine/blob/master/screenshots/banner.png)
+
 Article: **Coming Soon(ish)**
 
 ## Description

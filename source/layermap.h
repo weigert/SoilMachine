@@ -163,14 +163,14 @@ Layermap(int SEED, ivec2 _dim){
     double h;
 
     h = 0.5f+noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)(SEED%10000));
-    //if(h > 0.0) add(ivec2(i, j), pool.get(h, ROCK));
+    if(h > 0.0) add(ivec2(i, j), pool.get(h, ROCK));
+
+    h = 0.3f*noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+15)%1000));
     if(h > 0.0) add(ivec2(i, j), pool.get(h, REDSAND));
 
   //  h = 0.5f+noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+50)%10000));
   //  if(h > 0.0) add(ivec2(i, j), pool.get(h, SAND));
 
-//    h = 0.5f*noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+10)%1000));
-  //  if(h > 0.0) add(ivec2(i, j), pool.get(h, REDSAND));
 
   //  h = noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+10)%1000));
   //  if(h > 0.0) add(ivec2(i, j), pool.get(h, SAND));

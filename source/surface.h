@@ -77,12 +77,12 @@ std::map<SurfType, SurfParam> pdict = {
 
   {GRAVEL, { 0.95f, vec4(0.7, 0.7, 0.7, 1.0),
     GRAVEL, 0.75f, 0.6f, 0.75f,
-    GRAVEL, 0.01f,
-    GRAVEL, 0.0005f, 0.8f,
+    SOIL, 0.0f,
+    GRAVEL, 0.01f, 0.5f,
     GRAVEL, 0.0f, 0.0f, }},
 
   {SOIL, { 0.7f, vec4(0.32, 0.52, 0.32, 1.0),
-    SOIL, 0.75f, 0.5f, 0.5f,
+    SOIL, 1.0f, 0.8f, 0.5f,
     SOIL, 0.0f,
     SOIL, 0.0005f, 0.8f,
     SOIL, 0.0f, 0.0f}},

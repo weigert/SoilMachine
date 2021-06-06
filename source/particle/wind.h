@@ -35,9 +35,9 @@ struct WindParticle : public Particle {
   SurfType contains;
   SurfParam param;
 
-  const double gravity = 0.01;
-  const double winddominance = 0.1;
-  const double windfriction = 0.9;
+  const double gravity = 0.1;
+  const double winddominance = 0.5;
+  const double windfriction = 0.5;
   const double minsed = 0.0001;
 
   bool move(Layermap& map, Vertexpool<Vertex>& vertexpool){

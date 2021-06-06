@@ -134,6 +134,7 @@ sec* top(ivec2 pos){                      //Top Element at Position
 uint* section = NULL;                     //Vertexpool Section Pointer
 void meshpool(Vertexpool<Vertex>&);       //Mesh based on Vertexpool
 void update(ivec2, Vertexpool<Vertex>&);  //Update Vertexpool at Position (No Remesh)
+void update(Vertexpool<Vertex>&);  //Update Vertexpool at Position (No Remesh)
 
 public:
 
@@ -142,7 +143,7 @@ Layermap(int SEED, ivec2 _dim){
 
   dim = _dim;
   dat = new sec*[dim.x*dim.y];      //Array of Section Pointers
-  pool.reserve(dim.x*dim.y*256);
+  pool.reserve(dim.x*dim.y*64);
 
   //Set the Height!
   FastNoiseLite noise;
@@ -151,7 +152,7 @@ Layermap(int SEED, ivec2 _dim){
   noise.SetFractalOctaves(7.0f);
   noise.SetFractalLacunarity(2.0f);
   noise.SetFractalGain(0.5f);
-  noise.SetFrequency(1.0);
+  noise.SetFrequency(2.0);
 
   //Add a first layer!
   for(int i = 0; i < dim.x; i++){
@@ -162,11 +163,11 @@ Layermap(int SEED, ivec2 _dim){
     //Compute Height Value
     double h;
 
-    h = 0.5f+noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)(SEED%10000));
+    h = noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)(SEED%10000));
     if(h > 0.0) add(ivec2(i, j), pool.get(h, ROCK));
 
-    h = 0.3f*noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+15)%1000));
-    if(h > 0.0) add(ivec2(i, j), pool.get(h, REDSAND));
+//    h = 0.3f*noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+15)%1000));
+//    if(h > 0.0) add(ivec2(i, j), pool.get(h, SAND));
 
 //    h = 0.3f*noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+35)%1000));
 //    if(h > 0.0) add(ivec2(i, j), pool.get(h, SAND));
@@ -217,7 +218,7 @@ void Layermap::add(ivec2 pos, sec* E){
   dat[pos.x*dim.y+pos.y]->next = E;
   E->prev = dat[pos.x*dim.y+pos.y];
   E->floor = height(pos);
-  dat[pos.x*dim.y+pos.y] = E;   //E->prev = dat[pos.x*dim.y+pos.y]; //Reference Previous Element
+  dat[pos.x*dim.y+pos.y] = E;
 
 /*
   //Ordering
@@ -387,6 +388,20 @@ void Layermap::meshpool(Vertexpool<Vertex>& vertexpool){
   vertexpool.update();
 
 }
+
+void Layermap::update(Vertexpool<Vertex>& vertexpool){
+
+  for(int i = 0; i < dim.x; i++)
+  for(int j = 0; j < dim.y; j++){
+    vertexpool.fill(section, i*dim.y+j,
+      vec3(i, SCALE*height(ivec2(i, j)), j),
+      normal(ivec2(i, j)),
+      pdict[surface(ivec2(i, j))].color
+    );
+  }
+
+}
+
 
 void Layermap::update(ivec2 p, Vertexpool<Vertex>& vertexpool){
 

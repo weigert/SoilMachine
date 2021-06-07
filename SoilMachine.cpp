@@ -20,15 +20,17 @@ int main( int argc, char* args[] ) {
 	cout<<"Launching SoilMachine V1.0"<<endl;
 
 	//Get Seed
-	srand(time(NULL));
 
 	int SEED;
 	if(argc > 1)
 		SEED = stoi(args[1]);
-	else
+	else{
+		srand(time(NULL));
 		SEED = rand();
+	}
 
 	cout<<"SEED: "<<SEED<<endl;
+	srand(SEED);	//Re-Seed Random Generator
 
 	//Initialize a Window
 	Tiny::window("Soil Machine", WIDTH, HEIGHT);
@@ -43,6 +45,8 @@ int main( int argc, char* args[] ) {
 	cam::update();
 
 
+	int nwindcycles = 1000;
+	int nwatercycles = 1000;
 	bool paused = true;
 
 	Tiny::event.handler = [&](){
@@ -72,14 +76,29 @@ int main( int argc, char* args[] ) {
 			if(ImGui::BeginTabItem("Map")){
 
 				ImGui::Text("World Seed: "); ImGui::SameLine();
-				ImGui::Text("%i", SEED);
+				ImGui::DragInt("Seed", &SEED, 1, 0, 100000000);
+				if(ImGui::Button("Re-Seed")){
+					map.initialize(SEED, ivec2(SIZEX, SIZEY));
+					map.meshpool(vertexpool);
+				}
+
+				ImGui::Text("Memory Pool Usage: %f%%", (100000000.0-(double)map.pool.free.size())/100000000.0);
+
 
 				ImGui::EndTabItem();
 			}
 
 			if(ImGui::BeginTabItem("Erosion")){
 
+				if(ImGui::TreeNode("Hydraulic Erosion")){
+					ImGui::DragInt("Particles per Frame", &nwatercycles, 1, 0, 2000);
+					ImGui::TreePop();
+				}
 
+				if(ImGui::TreeNode("WindErosion")){
+					ImGui::DragInt("Particles per Frame", &nwindcycles, 1, 0, 2000);
+					ImGui::TreePop();
+				}
 
 				ImGui::EndTabItem();
 			}
@@ -262,15 +281,26 @@ int main( int argc, char* args[] ) {
 
 		if(paused) return;
 
-		for(int i = 0; i < 1000; i++){
-		  WaterParticle particle(vec2(rand()%map.dim.x, rand()%map.dim.y), map);
-	    while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
+
+		for(int i = 0; i < nwatercycles; i++){
+
+			WaterParticle particle(vec2(rand()%map.dim.x, rand()%map.dim.y), map);
+
+			while(true){
+				//Move Until Complete!
+				while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
+				if(!particle.flood(map, vertexpool)) //Try a Flood!
+					break;
+
+			}
+
 		}
 
-		for(int i = 0; i < 1000; i++){
-			WindParticle particle(vec2(rand()%map.dim.x, rand()%map.dim.y), map);
-			while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
-		}
+
+//		for(int i = 0; i < nwindcycles; i++){
+//			WindParticle particle(vec2(rand()%map.dim.x, rand()%map.dim.y), map);
+//			while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
+//		}
 
 	});
 

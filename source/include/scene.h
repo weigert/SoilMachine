@@ -6,7 +6,7 @@ using namespace glm;
 vec3 lightcolor = vec3(1);
 float lightstrength = 1.0f;
 vec3 lightpos = vec3(1.25f,1.5f,2.5f);
-vec3 skycolor = vec3(0.12,0.05,0.05);
+vec3 skycolor = vec3(0.80,0.90,0.89);
 
 bool distancefog = false;
 

@@ -109,7 +109,7 @@ class Layermap {
 
 private:
 
-sec** dat;                                //Raw Data Grid
+sec** dat = NULL;                         //Raw Data Grid
 
 public:
 
@@ -134,25 +134,25 @@ sec* top(ivec2 pos){                      //Top Element at Position
 uint* section = NULL;                     //Vertexpool Section Pointer
 void meshpool(Vertexpool<Vertex>&);       //Mesh based on Vertexpool
 void update(ivec2, Vertexpool<Vertex>&);  //Update Vertexpool at Position (No Remesh)
-void update(Vertexpool<Vertex>&);  //Update Vertexpool at Position (No Remesh)
+void update(Vertexpool<Vertex>&);         //Update Vertexpool at Position (No Remesh)
 
 public:
 
-//Constructors
-Layermap(int SEED, ivec2 _dim){
+void initialize(int SEED, ivec2 _dim){
 
   dim = _dim;
+
+  if(dat != NULL) delete[] dat;
   dat = new sec*[dim.x*dim.y];      //Array of Section Pointers
-  pool.reserve(dim.x*dim.y*64);
 
   //Set the Height!
   FastNoiseLite noise;
   noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
   noise.SetFractalType(FastNoiseLite::FractalType_FBm);
-  noise.SetFractalOctaves(7.0f);
+  noise.SetFractalOctaves(8.0f);
   noise.SetFractalLacunarity(2.0f);
   noise.SetFractalGain(0.5f);
-  noise.SetFrequency(2.0);
+  noise.SetFrequency(1.0);
 
   //Add a first layer!
   for(int i = 0; i < dim.x; i++){
@@ -163,35 +163,20 @@ Layermap(int SEED, ivec2 _dim){
     //Compute Height Value
     double h;
 
-    h = noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)(SEED%10000));
+    h = 0.5f+noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)(SEED%10000));
     if(h > 0.0) add(ivec2(i, j), pool.get(h, ROCK));
 
-//    h = 0.3f*noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+15)%1000));
-//    if(h > 0.0) add(ivec2(i, j), pool.get(h, SAND));
-
-//    h = 0.3f*noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+35)%1000));
-//    if(h > 0.0) add(ivec2(i, j), pool.get(h, SAND));
-
-  //  h = 0.5f+noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+50)%10000));
-  //  if(h > 0.0) add(ivec2(i, j), pool.get(h, SAND));
-
-
-  //  h = noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+10)%1000));
-  //  if(h > 0.0) add(ivec2(i, j), pool.get(h, SAND));
-
-
-
-  //  h = 0.2+noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+15)%1000));
-  //  if(h > 0.0) add(ivec2(i, j), pool.get(h, SAND));
-
-
-
-    //Second Layer!
-  //  h = noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+50)%1000));
-  //  if(h > 0.0) add(ivec2(i, j), pool.get(h, SOIL));
+  //  h = 0.3f*noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+15)%1000));
+  //  if(h > 0.0) add(ivec2(i, j), pool.get(h, REDSAND));
 
   }}
 
+}
+
+//Constructors
+Layermap(int SEED, ivec2 _dim){
+  pool.reserve(1E8);                //Some permissible amount of RAM later...
+  initialize(SEED, _dim);
 }
 
 Layermap(int SEED, ivec2 _dim, Vertexpool<Vertex>& vertexpool):Layermap(SEED, _dim){
@@ -363,6 +348,11 @@ double Layermap::height(vec2 pos){
 // Meshing
 
 void Layermap::meshpool(Vertexpool<Vertex>& vertexpool){
+
+  if(section != NULL){
+    vertexpool.unsection(section);
+    vertexpool.indices.clear();
+  }
 
   section = vertexpool.section(dim.x*dim.y, 0, glm::vec3(0));
 

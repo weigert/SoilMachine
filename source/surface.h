@@ -48,7 +48,11 @@ std::map<SurfType, SurfParam> pdict = {
     AIR, 1.0f, 0.95f,
     AIR, 0.0f, 0.0f}},
 
-//  {WATER, {0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.1f, WATER, WATER, vec4(0.27, 0.57, 0.6, 1.0)}},
+  {WATER, { "Water", 1.0f, vec4(0.38, 0.53, 0.68, 1.0),
+    WATER, 0.0f, 0.0f, 0.0f,
+    WATER, 0.0f,
+    WATER, 0.0f, 1.0f,
+    WATER, 0.0f, 0.0f}},
 
   {REDSAND, { "Red Sand", 0.4f, vec4(0.866, 0.635, 0.431, 1.0), //vec4(0.88, 0.79, 0.41, 1.0)
     REDSAND, 0.2f, 0.5f, 0.5f,
@@ -70,23 +74,22 @@ std::map<SurfType, SurfParam> pdict = {
 
   //No Rock-Cascading, Only Erosion
 
-  {ROCK, { "Rock", 1.0f, vec4(0.278, 0.219, 0.219, 1.0),
-    GRAVEL, 0.5f, 0.4f, 0.95f,        //Hydrological Transport
+  {ROCK, { "Rock", 1.0f, vec4(0.2, 0.2, 0.2, 1.0),// vec4(0.278, 0.219, 0.219, 1.0),
+    GRAVEL, 0.7f, 0.6f, 0.95f,        //Hydrological Transport
     GRAVEL, 0.0f,                     //Hydraulic In-Particle Erosion
-    GRAVEL, 10.0f, 0.0f,              //Cascading Height, Rate, Species
+    GRAVEL, 0.005f, 0.2f,              //Cascading Height, Rate, Species
     GRAVEL, 0.0f, 0.0f}},             //Wind-Erosion Suspendibility, Abrasion, Type
 
-  {GRAVEL, { "Gravel", 0.95f, vec4(0.447, 0.384, 0.345, 1.0),
-    GRAVEL, 0.75f, 0.6f, 0.75f,
+  {GRAVEL, { "Gravel", 0.95f, vec4(0.75, 0.75, 0.75, 1.0),//vec4(0.447, 0.384, 0.345, 1.0),
+    GRAVEL, 0.8f, 0.7f, 0.75f,
     SOIL, 0.01f,
     GRAVEL, 0.01f, 0.5f,
     GRAVEL, 0.0f, 0.0f, }},
 
-  {SOIL, { "Soil", 0.7f, vec4(0.32, 0.52, 0.32, 1.0),
-    SOIL, 1.0f, 0.8f, 0.5f,
-    SOIL, 0.0f,
-    SOIL, 0.0005f, 0.8f,
-    SOIL, 0.0f, 0.0f}},
-
+    {SOIL, { "Soil", 0.7f, vec4(0.32, 0.52, 0.32, 1.0),
+      SOIL, 1.0f, 0.8f, 0.5f,
+      SOIL, 0.0f,
+      SOIL, 0.0005f, 0.8f,
+      SOIL, 0.0f, 0.0f}},
 
 };

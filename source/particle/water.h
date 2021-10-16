@@ -55,24 +55,37 @@ struct WaterParticle : public Particle {
   float volume = 1.0;   //This will vary in time
   float sediment = 0.0; //Fraction of Volume that is Sediment!
 
-  const float minvol = 0.005;
-  float evaprate = 0.01;
+  const float minvol = 0.01;
+  float evaprate = 0.001;
 
   const double volumeFactor = 0.5;    //"Water Deposition Rate"
+  int spill = 3;
 
   //Helper Properties
   ivec2 ipos;
-  int spill = 3;
   vec3 n;
   SurfParam param;
   SurfType surface;
   SurfType contains;
 
   static float* frequency;
+  static float* track;
 
   void updatefrequency(Layermap& map, ivec2 ipos){
     int ind = ipos.y*map.dim.x+ipos.x;
-    frequency[ind] = 0.95*frequency[ind] + 0.05f*volume;
+    track[ind] += volume;
+  }
+
+  static void resetfrequency(Layermap& map){
+    for(int i = 0; i < map.dim.x*map.dim.y; i++)
+      track[i] = 0.0f;
+  }
+
+  static void mapfrequency(Layermap& map){
+    const float lrate = 0.01f;
+    const float K = 50.0f;
+    for(int i = 0; i < map.dim.x*map.dim.y; i++)
+      frequency[i] = (1.0f-lrate)*frequency[i] + lrate*K*track[i]/(1.0f + K*track[i]);;
   }
 
   bool move(Layermap& map, Vertexpool<Vertex>& vertexpool){
@@ -84,16 +97,17 @@ struct WaterParticle : public Particle {
     updatefrequency(map, ipos);
 
     //Modify Parameters Based on Frequency
-  //  param.friction = param.friction + (1.0f-param.friction)*frequency[ipos.y*map.dim.x+ipos.x];
+    param.friction = param.friction*(1.0f-frequency[ipos.y*map.dim.x+ipos.x]);
+    evaprate = 0.005f*(1.0f-0.2f*frequency[ipos.y*map.dim.x+ipos.x]);
 
-    if(surface == soilmap["Water"])
+    if(surface == soilmap["Water"] || surface == soilmap["Air"])
       return false;
 
-    if(length(vec2(n.x, n.z)*(1.0f-param.friction)) < 1E-5)   //No Motion
+    if(length(vec2(n.x, n.z)*param.friction) < 1E-5)   //No Motion
       return false;
 
     //Motion Low
-    speed = mix(speed, vec2(n.x, n.z), param.friction);
+    speed = mix(vec2(n.x, n.z), speed, param.friction);
     speed = sqrt(2.0f)*normalize(speed);
     pos   += speed;
 
@@ -111,7 +125,7 @@ struct WaterParticle : public Particle {
   bool interact(Layermap& map, Vertexpool<Vertex>& vertexpool){
 
     //Equilibrium Sediment Transport Amount
-    float c_eq = param.solubility*length(vec2(n.x,n.z))*(map.height(ipos)-map.height(pos));
+    float c_eq = param.solubility*(map.height(ipos)-map.height(pos));
     if(c_eq < 0.0) c_eq = 0.0;
 
     //Execute Transport to Particle
@@ -119,7 +133,7 @@ struct WaterParticle : public Particle {
     sediment += param.equrate*cdiff;
 
     //Erode Sediment IN Particle
-    if((float)(rand()%10000)/10000.0f < soils[contains].erosionrate)
+    if((float)(soils[contains].erosionrate) < frequency[ipos.y*map.dim.x+ipos.x])
       contains = soils[contains].erodes;
 
     //Add Sediment to Map
@@ -270,3 +284,4 @@ struct WaterParticle : public Particle {
 };
 
 float* WaterParticle::frequency = new float[SIZEX*SIZEY]{0.0f};
+float* WaterParticle::track = new float[SIZEX*SIZEY]{0.0f};

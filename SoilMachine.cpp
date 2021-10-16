@@ -8,7 +8,7 @@
 
 #define SIZEX 512
 #define SIZEY 512
-#define SCALE 128
+#define SCALE 80
 
 #define POOLSIZE 10000000
 int SEED;
@@ -62,8 +62,8 @@ int main( int argc, char* args[] ) {
 	cam::roty = 45.0f;
 	cam::update();
 
-	int nwindcycles = 500;
-	int nwatercycles = 500;
+	int nwindcycles = 100;
+	int nwatercycles = 1000;
 	bool paused = true;
 
 	glDisable(GL_CULL_FACE);
@@ -266,21 +266,17 @@ int main( int argc, char* args[] ) {
 		}
 
 		//Update Raw Textures
+		WaterParticle::mapfrequency(map);
 		watertexture.raw(image::make([&](int i){
 			float wf = WaterParticle::frequency[i];
 			return vec4(wf, wf, wf, 1);
 		}, vec2(SIZEX, SIZEY)));
+		WaterParticle::resetfrequency(map);
 
 		windtexture.raw(image::make([&](int i){
 			float wf = WindParticle::frequency[i];
 			return vec4(wf, wf, wf, 1);
 		}, vec2(SIZEX, SIZEY)));
-
-
-		for(int i = 0; i < map.dim.x*map.dim.y; i++){
-			WaterParticle::frequency[i] = 0.95*WaterParticle::frequency[i] + 0.0f;
-			WindParticle::frequency[i] = 0.5*WindParticle::frequency[i] + 0.0f;
-		}
 
 	});
 

@@ -62,8 +62,8 @@ int main( int argc, char* args[] ) {
 	cam::roty = 45.0f;
 	cam::update();
 
-	int nwindcycles = 1000;
-	int nwatercycles = 1000;
+	int nwindcycles = 500;
+	int nwatercycles = 500;
 	bool paused = true;
 
 	glDisable(GL_CULL_FACE);
@@ -122,6 +122,7 @@ int main( int argc, char* args[] ) {
 
 				if(ImGui::TreeNode("Hydraulic Erosion")){
 					ImGui::DragInt("Particles per Frame", &nwatercycles, 1, 0, 2000);
+					ImGui::Checkbox("Overlay Map?", &scene::wateroverlay);
 					ImGui::Text("Frequency Texture: ");
 					ImGui::Image((void*)(intptr_t)watertexture.texture, ImVec2(SIZEX, SIZEY));
 					ImGui::TreePop();
@@ -203,7 +204,7 @@ int main( int argc, char* args[] ) {
 	Shader effect({"source/shader/effect.vs", "source/shader/effect.fs"}, {"in_Quad", "in_Tex"});
 
 	Billboard image(WIDTH, HEIGHT); 			//1200x1000
-	Billboard shadow(2000, 2000, false); 	//800x800, depth only
+	Billboard shadow(4000, 4000, false); 	//800x800, depth only
 	Square2D flat;												//For Billboard Rendering
 
 	//Define the rendering pipeline
@@ -226,6 +227,9 @@ int main( int argc, char* args[] ) {
     shader.uniform("lightpos", scene::lightpos);
     shader.uniform("lookdir", -cam::pos);
 		shader.texture("shadowmap", shadow.depth);
+		shader.uniform("wateroverlay", scene::wateroverlay);
+		shader.uniform("watercolor", scene::watercolor);
+		shader.texture("watermap", watertexture);
 		vertexpool.render(GL_TRIANGLES);
 
 		//Render Image with Effects

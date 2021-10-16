@@ -19,4 +19,7 @@ mat4 bias = glm::mat4(
     0.5, 0.5, 0.5, 1.0
 );
 
+vec3 watercolor = vec3(0.27, 0.5, 0.7);
+bool wateroverlay = true;
+
 }

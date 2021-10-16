@@ -93,8 +93,16 @@ sec* get(Args && ...args){
 
 //Return Element
 void unget(sec* E){
+  if(E == NULL)
+    return;
   E->reset();
   free.push_front(E);
+}
+
+void reset(){
+  free.clear();
+  for(int i = 0; i < size; i++)
+    free.push_front(start+i);
 }
 
 };
@@ -145,6 +153,8 @@ void initialize(int SEED, ivec2 _dim){
   dim = _dim;
 
   //Important so Re-Callable
+
+  pool.reset();
 
   if(dat != NULL) delete[] dat;
   dat = new sec*[dim.x*dim.y];      //Array of Section Pointers

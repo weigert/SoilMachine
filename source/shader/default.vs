@@ -15,6 +15,11 @@ uniform vec3 lightcolor;
 uniform vec3 lightpos;
 uniform vec3 lookdir;
 
+uniform sampler2D watermap;
+
+uniform bool wateroverlay;
+uniform vec3 watercolor;
+
 out vec3 ex_FragPos;
 out vec3 ex_Normal;
 out vec4 ex_Color;
@@ -64,7 +69,13 @@ void main(void) {
 	ex_FragPos = (model * vec4(in_Position, 1.0f)).xyz;
 	ex_Shadow = dbvp* vec4(ex_FragPos, 1.0f);
 	ex_Normal = in_Normal;	//Pass Normal
-	ex_Color = /*gouraud()**/in_Color;
+  ex_Color = in_Color;
+
+  if(wateroverlay){
+    vec2 texturepos = in_Position.xz/textureSize(watermap, 0);
+    float w = length(texture(watermap, texturepos).rgb);
+    ex_Color = mix(ex_Color, vec4(watercolor, 1.0), w);
+  }
 
 	gl_Position = vp * vec4(ex_FragPos, 1.0f);
 

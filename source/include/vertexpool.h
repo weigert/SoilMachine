@@ -226,10 +226,14 @@ void unsection(uint* index){
 
 // Construct a vertex in a bucket at location k on the buffer
 
+T* get(uint* ind, int k){
+	return start + indirect[*ind].baseVert + k;
+}
+
 template<typename... Args>
 void fill(uint* ind, int k, Args && ...args){
 
-  T* place = start + indirect[*ind].baseVert + k;
+  T* place = get(ind, k);
 	if(size_t(place - start) > MAXSIZE)
 		std::cout<<"Vertexpool Error: Out-Of-Bounds Write"<<std::endl;
 

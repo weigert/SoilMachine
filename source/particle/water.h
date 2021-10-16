@@ -6,6 +6,38 @@
 
 #include "particle.h"
 
+#include <unordered_map>
+#include <unordered_set>
+
+struct Pool {         //Water Level Acceleration Structure
+
+  struct poolhash {
+    size_t operator()(const ivec2& k) const {
+      return std::hash<int>()(k.x) ^ std::hash<int>()(k.y);
+    }
+
+    bool operator()(const ivec2& a, const ivec2& b) const {
+      return a.x == b.x && a.y == b.y;
+    }
+  };
+
+  double plane;       //Height of the Plane
+
+  unordered_set<ivec2, poolhash, poolhash> set;
+  unordered_map<ivec2, double, poolhash, poolhash> boundary;
+
+  pair<ivec2, double> minbound;
+  pair<ivec2, double> drain;
+  bool drained = false;
+
+  Pool(Layermap& map, ivec2 pos){
+    plane = map.height(pos);
+    boundary[pos] = plane;
+    minbound = pair<ivec2, double>(pos, plane);
+  }
+
+};
+
 struct WaterParticle : public Particle {
 
   WaterParticle(vec2 p):Particle(p){}
@@ -14,7 +46,7 @@ struct WaterParticle : public Particle {
 
     ipos = round(pos);
     surface = map.surface(ipos);
-    param = pdict[surface];
+    param = soils[surface];
     contains = param.transports;    //The Transporting Type
 
   }
@@ -24,27 +56,40 @@ struct WaterParticle : public Particle {
   float sediment = 0.0; //Fraction of Volume that is Sediment!
 
   const float minvol = 0.005;
-  const float evaprate = 0.01;
+  float evaprate = 0.01;
+
+  const double volumeFactor = 0.5;    //"Water Deposition Rate"
 
   //Helper Properties
   ivec2 ipos;
-  int spill = 5;
+  int spill = 3;
   vec3 n;
   SurfParam param;
   SurfType surface;
   SurfType contains;
+
+  static float* frequency;
+
+  void updatefrequency(Layermap& map, ivec2 ipos){
+    int ind = ipos.y*map.dim.x+ipos.x;
+    frequency[ind] = 0.95*frequency[ind] + 0.05f*volume;
+  }
 
   bool move(Layermap& map, Vertexpool<Vertex>& vertexpool){
 
     ipos = round(pos);                //Position
     n = map.normal(ipos);             //Surface Normal Vector
     surface = map.surface(ipos);      //Surface Composition
-    param = pdict[surface];           //Surface Composition
+    param = soils[surface];           //Surface Composition
+    updatefrequency(map, ipos);
 
-    if(surface == WATER)
+    //Modify Parameters Based on Frequency
+  //  param.friction = param.friction + (1.0f-param.friction)*frequency[ipos.y*map.dim.x+ipos.x];
+
+    if(surface == soilmap["Water"])
       return false;
 
-    if(length(vec2(n.x, n.z)*param.friction) < 1E-3)   //No Motion
+    if(length(vec2(n.x, n.z)*(1.0f-param.friction)) < 1E-5)   //No Motion
       return false;
 
     //Motion Low
@@ -74,9 +119,8 @@ struct WaterParticle : public Particle {
     sediment += param.equrate*cdiff;
 
     //Erode Sediment IN Particle
-    //if(dist::uniform() < pdict[contains].erosionrate)
-    if((float)(rand()%10000)/10000.0f < pdict[contains].erosionrate)
-      contains = pdict[contains].erodes;
+    if((float)(rand()%10000)/10000.0f < soils[contains].erosionrate)
+      contains = soils[contains].erodes;
 
     //Add Sediment to Map
     if(cdiff < 0)
@@ -88,8 +132,7 @@ struct WaterParticle : public Particle {
       while(diff > 0.0) diff = map.remove(ipos, diff);
     }
 
-    //Execute Sediment Cascade at Location
-    cascade(pos, map, vertexpool);
+    cascade(pos, map, vertexpool, 0);
 
     //Update Map, Particle
     map.update(ipos, vertexpool);
@@ -105,27 +148,13 @@ struct WaterParticle : public Particle {
       return false;
 
     ipos = pos;                         //Position
-    double plane = map.height(ipos);    //Height of Map at Position
-    double initialplane = plane;        //Store Initial Plane
 
-    vector<ivec2> set;                  //Flood-Set
-    int fail = 15;                      //Number of Tries
-    const double volumeFactor = 100.0;   //"Water Deposition Rate"
-
-    //Can be declared here!
-    ivec2 drain = ipos;
-    bool drainfound = false;
-
-    vector<ivec2> oldboundary;             //Flood-Set
-    vector<ivec2> newboundary;
-    oldboundary.push_back(ipos);
-
-    //set.clear();
+    Pool pool(map, ipos);
     bool tried[map.dim.x*map.dim.y] = {false};
 
-    while(volume > minvol && fail){     //Try to Flood with Volume
+    while(volume > minvol){     //Try to Flood with Volume
 
-      const function<void(ivec2)> fill = [&](ivec2 ppos){
+      const function<void(const ivec2)> fill = [&](const ivec2 ppos){
 
         //Out of Bounds
         if(!all(greaterThanEqual(ppos, ivec2(0))) ||
@@ -136,32 +165,34 @@ struct WaterParticle : public Particle {
         if(tried[ppos.x*map.dim.y+ppos.y])
           return;
 
-        //Wall / Boundary
-        if(plane < map.height(ppos)){
-          newboundary.push_back(ppos);
+        //Store Height at this Position
+        double height = map.height(ppos);
+
+        //Wall / Boundary: Add to Boundary, Not in Set
+        if(pool.plane < height){
+          pool.boundary[ppos] = height;
           return;
         }
-
-        //Position is now tried!
-        tried[ppos.x*map.dim.y+ppos.y] = true;
 
         //Drainage Point
-        if(initialplane > map.height(ppos)){
+        if(pool.plane > height){
 
           //No Drain yet
-          if(!drainfound)
-            drain = ppos;
+          if(!pool.drained)
+            pool.drain = pair<ivec2, double>(ppos, height);
 
           //Lower Drain
-          else if( map.height(drain) < map.height(ppos) )
-            drain = ppos;
+          else if( height < pool.drain.second )
+            pool.drain = pair<ivec2, double>(ppos, height);
 
-          drainfound = true;
+          pool.drained = true;
           return;
 
         }
 
-        set.push_back(ppos);        //Part of the Pool
+        tried[ppos.x*map.dim.y+ppos.y] = true;
+
+        pool.set.insert(ppos);      //Part of the Pool
         fill(ppos+ivec2( 0, 1));    //Fill Neighbors
         fill(ppos+ivec2( 0,-1));    //Fill Neighbors
         fill(ppos+ivec2( 1, 0));    //Fill Neighbors
@@ -173,74 +204,69 @@ struct WaterParticle : public Particle {
 
       };
 
-      newboundary.clear();
-      for(auto& b: oldboundary){
-        fill(b);
-      }
-      oldboundary = newboundary;
+      fill(pool.minbound.first);                    //Only Fill At Boundary
 
-      //boundary.clear();
+      if(pool.set.empty())
+        break;
 
       //Drainage Point -> Exit Loop!
-      if(drainfound){
+      if(pool.drained){
 
-        pos = drain;
-
-        double drainage = 0.01;
-        plane = (1.0-drainage)*initialplane + drainage*(map.height(drain));
+        pos = pool.drain.first;
+        pool.plane = pool.minbound.second;
 
         //Compute the New Height
-        for(auto& s: set){
+        for(auto& s: pool.set){
 
-          if(map.surface(s) != WATER)
+          if(map.surface(s) != soilmap["Water"])
             continue;
 
-          double h = (map.height(s)-plane);
+          double h = (map.height(s)-pool.plane);
           double diff = map.remove(s, h);
+          volume += (h-diff)/volumeFactor;
           map.update(s, vertexpool);
 
         }
 
-        sediment = 0.0f;
-        return true;
+        return true;  //Repeat Flood Step
 
       }
 
-      //Get Volume under Plane
-      double tVol = 0.0;
-      for(auto& s: set)
-        tVol += volumeFactor*(plane - map.height(s));
+      pool.boundary.erase(pool.minbound.first);     //Remove From Boundary Set
 
-      //We can partially fill this volume
-      if(tVol <= volume && initialplane < plane){
+      if(pool.boundary.empty())
+        break;
 
-        //Raise water level to plane height
-        for(auto& s: set){
-          map.add(s, map.pool.get(plane-map.height(s), WATER));
-          map.update(s, vertexpool);
-        }
+      pool.minbound = (*pool.boundary.begin()); //Lowest Boundary Element
+      for(auto& b : pool.boundary)
+      if(b.second < pool.minbound.second)
+        pool.minbound = b;
 
-        //Adjust Drop Volume
-        volume -= tVol;
-        tVol = 0.0;
 
+      //We can set the plane to the height of the min boundary, or below
+      double vheight = volume/(double)pool.set.size()*volumeFactor;
+      if(pool.plane + vheight >= pool.minbound.second){
+        volume -= (pool.minbound.second - pool.plane)*pool.set.size()/volumeFactor;
+        pool.plane = pool.minbound.second;
+      }
+      else{
+        volume = 0.0f;
+        pool.plane += vheight;
       }
 
-      //Plane was too high.
-      else
-        fail--;
-
-      //Adjust Planes
-      initialplane = (plane > initialplane)?plane:initialplane;
-      plane += 0.5*(volume-tVol)/(double)set.size()/volumeFactor;
+      //Raise water level to plane height
+      for(auto& s: pool.set)
+        map.add(s, map.pool.get(pool.plane-map.height(s), soilmap["Water"]));
 
     }
 
-    if(volume < minvol || !fail)
-      return false;
+    for(auto& s: pool.set)
+      map.update(s, vertexpool);
 
-    return true;
+    return false;
 
   }
 
 };
+
+float* WaterParticle::frequency = new float[SIZEX*SIZEY]{0.0f};

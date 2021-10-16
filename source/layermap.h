@@ -30,7 +30,7 @@ struct sec {
 sec* next = NULL;     //Element Above
 sec* prev = NULL;     //Element Below
 
-SurfType type = AIR;  //Type of Surface Element
+SurfType type = soilmap["Air"];  //Type of Surface Element
 double size = 0.0f;   //Run-Length of Element
 double floor = 0.0f;  //Cumulative Height at Bottom
 
@@ -43,7 +43,7 @@ sec(double s, SurfType t){
 void reset(){
   next = NULL;
   prev = NULL;
-  type = AIR;
+  type = soilmap["Air"];
   size = 0.0f;
   floor = 0.0f;
 }
@@ -121,6 +121,8 @@ double height(ivec2);                     //Query Height at Discrete Position
 double height(vec2);                      //Query Height at Position (Bilinear Interpolation)
 vec3 normal(ivec2);                       //Normal Vector at Position
 vec3 normal(vec2);                        //Normal Vector at Position (Bilinear Interpolation)
+vec3 normal(ivec2, Vertexpool<Vertex>&);  //Normal Vector at Position (Read from Vertexpool)
+vec3 normal(vec2, Vertexpool<Vertex>&);   //Normal Vector at Position (Read from Vertexpool)
 SurfType surface(ivec2);                  //Surface Type at Position
 
 //Modifiers
@@ -142,40 +144,40 @@ void initialize(int SEED, ivec2 _dim){
 
   dim = _dim;
 
+  //Important so Re-Callable
+
   if(dat != NULL) delete[] dat;
   dat = new sec*[dim.x*dim.y];      //Array of Section Pointers
 
-  //Set the Height!
-  FastNoiseLite noise;
-  noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-  noise.SetFractalType(FastNoiseLite::FractalType_FBm);
-  noise.SetFractalOctaves(8.0f);
-  noise.SetFractalLacunarity(2.0f);
-  noise.SetFractalGain(0.5f);
-  noise.SetFrequency(1.0);
+  for(int i = 0; i < dim.x; i++)
+  for(int j = 0; j < dim.y; j++)
+    dat[i*dim.y+j] = NULL;
 
-  //Add a first layer!
-  for(int i = 0; i < dim.x; i++){
-  for(int j = 0; j < dim.y; j++){
+  //Fill 'er up
 
-    dat[i*dim.y+j] = NULL; //Initialize to Null
+  const int MAXSEED = 10000;
+  for(size_t l = 0; l < layers.size(); l++){
 
-    //Compute Height Value
-    double h;
+    const float f = (float)l/(float)layers.size();
+    const int Z = SEED + f*MAXSEED;
+    layers[l].init();
 
-    h = 0.5f+noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)(SEED%10000));
-    if(h > 0.0) add(ivec2(i, j), pool.get(h, ROCK));
+    //Add a first layer!
+    for(int i = 0; i < dim.x; i++){
+    for(int j = 0; j < dim.y; j++){
 
-  //  h = 0.3f*noise.GetNoise((float)(i)*(1.0f/dim.x), (float)(j)*(1.0f/dim.y), (float)((SEED+15)%1000));
-  //  if(h > 0.0) add(ivec2(i, j), pool.get(h, REDSAND));
+      double h = layers[l].get(vec3(i, j, Z%MAXSEED)/vec3(dim.x, dim.y, 1));
+      add(ivec2(i, j), pool.get(h, layers[l].type));
 
-  }}
+    }}
+
+  }
 
 }
 
 //Constructors
 Layermap(int SEED, ivec2 _dim){
-  pool.reserve(1E8);                //Some permissible amount of RAM later...
+  pool.reserve(POOLSIZE);                //Some permissible amount of RAM later...
   initialize(SEED, _dim);
 }
 
@@ -187,16 +189,47 @@ Layermap(int SEED, ivec2 _dim, Vertexpool<Vertex>& vertexpool):Layermap(SEED, _d
 
 void Layermap::add(ivec2 pos, sec* E){
 
-  if(dat[pos.x*dim.y+pos.y] == NULL){
+  if(E == NULL)
+    return;
+
+  if(E->size <= 0){
+    pool.unget(E);
+    return;
+  }
+
+  if(dat[pos.x*dim.y+pos.y] == NULL){             //No Element: Set Top Element
     dat[pos.x*dim.y+pos.y] = E;
     return;
   }
 
-  //Same Type
-  if(dat[pos.x*dim.y+pos.y]->type == E->type){
+  if(dat[pos.x*dim.y+pos.y]->type == E->type){    //Same Type: Make Taller, Remove E
     dat[pos.x*dim.y+pos.y]->size += E->size;
     pool.unget(E);
     return;
+  }
+
+  //Basically: A position Swap
+
+  //Add to Water, but not equal to water
+  if(dat[pos.x*dim.y+pos.y]->type == soilmap["Water"]){ //Switch with Water
+
+/*
+    sec* top = dat[pos.x*dim.y+pos.y];  //Top Element (Water)
+    dat[pos.x*dim.y+pos.y] = top->prev;   //Top is Below
+
+    //Get the Height of Top
+
+    add(pos, E);                        //Add This Guy
+
+    top->size -= E->size; //Same Height
+    if(top->size > 0)
+      add(pos, top);                      //Add Water Back in
+
+    //Compute the Volume of
+*/
+
+    return;
+
   }
 
   //Add Element
@@ -205,31 +238,9 @@ void Layermap::add(ivec2 pos, sec* E){
   E->floor = height(pos);
   dat[pos.x*dim.y+pos.y] = E;
 
-/*
-  //Ordering
-  sec* cur = dat[pos.x*dim.y+pos.y];
-  while(cur->prev != NULL){
-
-    if(pdict[cur->type].density >= pdict[cur->prev->type].density){
-
-      dat[pos.x*dim.y+pos.y]->prev->size += dat[pos.x*dim.y+pos.y]->size;
-
-      if(cur->prev->type != cur->type)
-        dat[pos.x*dim.y+pos.y]->prev->type = dat[pos.x*dim.y+pos.y]->type;
-
-      dat[pos.x*dim.y+pos.y] = dat[pos.x*dim.y+pos.y]->prev;
-      pool.unget(cur);
-
-      cur = dat[pos.x*dim.y+pos.y];
-
-    }
-    else cur = cur->prev;
-
-  }
-*/
-
 }
 
+//Returns Amount Removed
 double Layermap::remove(ivec2 pos, double h){
 
   //No Element to Remove
@@ -244,14 +255,9 @@ double Layermap::remove(ivec2 pos, double h){
     return 0.0;
   }
 
-  //No Removal Necessary
+  //No Removal Necessary (Note: Zero Height Elements Removed)
   if(h <= 0.0)
     return 0.0;
-
-
-  //Remove From Element
-
-  //Element Contains No Information
 
   double diff = h - dat[pos.x*dim.y+pos.y]->size;
   dat[pos.x*dim.y+pos.y]->size -= h;
@@ -319,10 +325,30 @@ vec3 Layermap::normal(vec2 pos){
 
 }
 
+vec3 Layermap::normal(ivec2 pos, Vertexpool<Vertex>& vertexpool){
+  Vertex* v = vertexpool.get(section, pos.x*dim.y+pos.y);
+  return vec3(v->normal[0], v->normal[1], v->normal[2]);
+}
+
+vec3 Layermap::normal(vec2 pos, Vertexpool<Vertex>& vertexpool){
+
+  vec3 n = vec3(0);
+  ivec2 p = floor(pos);
+  vec2 w = fract(pos);
+
+  n += (1.0f-w.x)*(1.0f-w.y)*normal(p, vertexpool);
+  n += (1.0f-w.x)*w.y*normal(p+ivec2(1,0), vertexpool);
+  n += w.x*(1.0f-w.y)*normal(p+ivec2(0,1), vertexpool);
+  n += w.x*w.y*normal(p+ivec2(1,1), vertexpool);
+
+  return n;
+
+}
+
 //Queries
 
 SurfType Layermap::surface(ivec2 pos){
-  if(dat[pos.x*dim.y+pos.y] == NULL) return AIR;
+  if(dat[pos.x*dim.y+pos.y] == NULL) return 0;
   return dat[pos.x*dim.y+pos.y]->type;
 }
 
@@ -345,7 +371,7 @@ double Layermap::height(vec2 pos){
 
 }
 
-// Meshing
+// Meshing, Updating
 
 void Layermap::meshpool(Vertexpool<Vertex>& vertexpool){
 
@@ -379,26 +405,16 @@ void Layermap::meshpool(Vertexpool<Vertex>& vertexpool){
 
 }
 
-void Layermap::update(Vertexpool<Vertex>& vertexpool){
-
-  for(int i = 0; i < dim.x; i++)
-  for(int j = 0; j < dim.y; j++){
-    vertexpool.fill(section, i*dim.y+j,
-      vec3(i, SCALE*height(ivec2(i, j)), j),
-      normal(ivec2(i, j)),
-      pdict[surface(ivec2(i, j))].color
-    );
-  }
-
-}
-
-
 void Layermap::update(ivec2 p, Vertexpool<Vertex>& vertexpool){
-
   vertexpool.fill(section, p.x*dim.y+p.y,
     vec3(p.x, SCALE*height(p), p.y),
     normal(p),
-    pdict[surface(p)].color
+    soils[surface(p)].color
   );
+}
 
+void Layermap::update(Vertexpool<Vertex>& vertexpool){
+  for(int i = 0; i < dim.x; i++)
+  for(int j = 0; j < dim.y; j++)
+    update(ivec2(i,j), vertexpool);
 }

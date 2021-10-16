@@ -16,7 +16,59 @@ SoilMachine is written from scratch in very little code and visualized with [Tin
 
 This repo is currently in development and will probably not be done soon but I am publishing it so updates can be followed live for anybody who is interested.
 
-### Features
+## Utilization
+
+Tested on Ubuntu20 LTS. See below for how to build.
+
+    Reading:
+
+      <> optional
+      [] required
+
+    Run:
+
+      ./soilmachine <options/flags>
+
+    Options:
+
+      -SEED [#]     Run using sed. No seed = random
+      -soil [file]  Specify relative path to .soil file
+
+      -oc [file]    Export color map to .png file at relative path (on program exit)
+      -oh [file]    Export height map to .png file at relative path (on program exit)
+
+Note: More options and flags are planned in the future. See the `todo.md` file for more information.
+
+### Controls
+
+    ESC: Toggle GUI
+    P: Toggle Pause (Paused by default!!!)
+
+    Scroll-Y: Zoom
+    Scroll-X: Camera Angle
+    Arrow Keys: Camera Orientation
+    C / V: Move Camera Up / Down
+    WASD: Move Camera in Plane
+
+In the GUI, a number of things can be done, including Re-Seeding the map, setting erosion parameters, tuning the soil properties without re-launching the program and tuning the visualization. More features are planned in the future (see `todo.md` for more information).
+
+### Building & Running
+
+SoilMachine is visualized using `TinyEngine`. Install `TinyEngine` using the instructions at the repo:
+
+    https://github.com/weigert/TinyEngine
+
+TinyEngine is the only dependency (besides sub-dependencies).
+
+Once that works, build SoilMachine using the makefile and run in place (no install):
+
+    cd ~
+    git clone https://github.com/weigert/SoilMachine
+    cd SoilMachine
+    make all
+    ./soilmachine
+
+## Features
 
 **Implemented**
 
@@ -47,41 +99,6 @@ Some example outputs:
 ![Output 2](https://github.com/weigert/SoilMachine/blob/master/screenshots/Output2.png)
 
 ![Output 3](https://github.com/weigert/SoilMachine/blob/master/screenshots/Output3.png)
-
-
-### Utilization
-
-Tested on Ubuntu20 LTS.
-
-#### Building & Running
-
-SoilMachine is visualized using `TinyEngine`. Install `TinyEngine` using the instructions at the repo:
-
-    https://github.com/weigert/TinyEngine
-    
-TinyEngine is the only dependency (besides sub-dependencies).
-
-Once that works, build SoilMachine using the makefile and run in place (no install):
-
-    cd ~
-    git clone https://github.com/weigert/SoilMachine
-    cd SoilMachine
-    make all
-    ./soilmachine
-
-#### Controls
-
-The GUI is currently being overhauled.
-
-    P: Toggle Pause (Paused by default!!!)
-  
-    Scroll-Y: Zoom
-    Scroll-X: Camera Angle
-    Up / Down Arrow: Camera Tilt
-    C / V: Move Camera Up / Down
-    WASD: Move Camera in Plane
-
-    ESC: Toggle GUI
 
 ## License
 

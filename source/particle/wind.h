@@ -16,7 +16,7 @@ struct WindParticle : public Particle {
 
     ipos = round(pos);
     surface = map.surface(ipos);
-    param = pdict[surface];
+    param = soils[surface];
     contains = param.transports;    //The Transporting Type
 
   }
@@ -36,9 +36,16 @@ struct WindParticle : public Particle {
   SurfParam param;
 
   const double gravity = 0.1;
-  const double winddominance = 0.5;
-  const double windfriction = 0.5;
+  const double winddominance = 0.2;
+  const double windfriction = 0.8;
   const double minsed = 0.0001;
+
+
+  static float* frequency;
+  void updatefrequency(Layermap& map, ivec2 ipos){
+    int ind = ipos.y*map.dim.x+ipos.x;
+    frequency[ind] = 0.5*frequency[ind] + 0.5f;
+  }
 
   bool move(Layermap& map, Vertexpool<Vertex>& vertexpool){
 
@@ -46,7 +53,8 @@ struct WindParticle : public Particle {
     ipos = round(pos);
     n = map.normal(ipos);
     surface = map.surface(ipos);
-    param = pdict[surface];
+    param = soils[surface];
+    updatefrequency(map, ipos);
 
     //Surface Height, No-Clip Condition
     sheight = map.height(ipos);
@@ -79,7 +87,7 @@ struct WindParticle : public Particle {
   bool interact(Layermap& map, Vertexpool<Vertex>& vertexpool){
 
     //Non-Suspending
-    if(pdict[contains].suspension == 0.0)
+    if(soils[contains].suspension == 0.0)
       return false;
 
     ivec2 npos = round(pos);
@@ -104,10 +112,10 @@ struct WindParticle : public Particle {
 
     else {
 
-      sediment -= pdict[contains].suspension*sediment;
+      sediment -= soils[contains].suspension*sediment;
 
-      map.add(npos, map.pool.get(0.5f*pdict[contains].suspension*sediment, contains));
-      map.add(ipos, map.pool.get(0.5f*pdict[contains].suspension*sediment, contains));
+      map.add(npos, map.pool.get(0.5f*soils[contains].suspension*sediment, contains));
+      map.add(ipos, map.pool.get(0.5f*soils[contains].suspension*sediment, contains));
 
       cascade(ipos, map, vertexpool, true);
       map.update(ipos, vertexpool);
@@ -122,3 +130,5 @@ struct WindParticle : public Particle {
   }
 
 };
+
+float* WindParticle::frequency =  new float[SIZEX*SIZEY]{0.0f};

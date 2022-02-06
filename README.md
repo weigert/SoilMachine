@@ -78,6 +78,9 @@ Once that works, build SoilMachine using the makefile and run in place (no insta
 - Modular description of transport types using a particle base class
   - Wind erosion particles based on [Particle-Based Wind Erosion](https://github.com/weigert/SimpleWindErosion)
   - Hydraulic erosion particles based on [Particle-Based Erosion](https://github.com/weigert/SimpleErosion)
+- GUI Interface for Initial Terrain
+- GUI Interface for Defining Sediment Properties
+- Data Export (Using Commandline Flags)
 
 **Planned**
 
@@ -85,10 +88,6 @@ Once that works, build SoilMachine using the makefile and run in place (no insta
 - Sediment compaction / conversion
 - Water-logging using sediment porosity
 - Implementation of multiple water tables based on [Particle-Based Hydrology](https://github.com/weigert/SimpleHydrology)
-
-- GUI Interface for Initial Terrain
-- GUI Interface for Defining Sediment Types
-- Data Export
 
 ### Screenshots
 

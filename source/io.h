@@ -210,7 +210,7 @@ void exportheight(Layermap& map, Vertexpool<Vertex>& vertexpool, string filename
   cout<<"Exporting Height Image"<<endl;
   SDL_Surface* img = image::make([&](int i){
     Vertex* v = vertexpool.get(map.section, i);
-    return vec4(v->position[1]/256, v->position[1]/256, v->position[1]/256, 1);
+    return vec4(v->position[1]/SCALE/sqrt(2), v->position[1]/SCALE/sqrt(2), v->position[1]/SCALE/sqrt(2), 1);
   }, vec2(SIZEX, SIZEY));
   image::save(img, filename);
 }

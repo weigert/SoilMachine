@@ -242,6 +242,29 @@ void Layermap::add(ivec2 pos, sec* E){
 
   }
 
+
+  if(dat[pos.x*dim.y+pos.y]->prev != NULL)
+  if(dat[pos.x*dim.y+pos.y]->prev->size < 0.01)
+  if(dat[pos.x*dim.y+pos.y]->prev->type == E->type){    //Same Type: Make Taller, Remove E
+    dat[pos.x*dim.y+pos.y]->prev->size += E->size;
+    dat[pos.x*dim.y+pos.y]->floor += E->size;
+    pool.unget(E);
+    return;
+  }
+
+  //Try a sorting move???
+
+  /*
+  if(dat[pos.x*dim.y+pos.y]->prev != NULL)
+  if(soils[dat[pos.x*dim.y+pos.y]->type].density < soils[E->type].density)
+  if(dat[pos.x*dim.y+pos.y]->prev->type == E->type){    //Same Type: Make Taller, Remove E
+    dat[pos.x*dim.y+pos.y]->prev->size += E->size;
+    dat[pos.x*dim.y+pos.y]->floor += E->size;
+    pool.unget(E);
+    return;
+  }
+  */
+
   //Add Element
   dat[pos.x*dim.y+pos.y]->next = E;
   E->prev = dat[pos.x*dim.y+pos.y];

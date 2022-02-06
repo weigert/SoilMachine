@@ -40,10 +40,9 @@ struct Pool {         //Water Level Acceleration Structure
 
 struct WaterParticle : public Particle {
 
-  WaterParticle(vec2 p):Particle(p){}
+  WaterParticle(Layermap& map){
 
-  WaterParticle(vec2 p, Layermap& map):WaterParticle(p){
-
+    pos = vec2(rand()%map.dim.x, rand()%map.dim.y);
     ipos = round(pos);
     surface = map.surface(ipos);
     param = soils[surface];
@@ -82,8 +81,8 @@ struct WaterParticle : public Particle {
   }
 
   static void mapfrequency(Layermap& map){
-    const float lrate = 0.01f;
-    const float K = 50.0f;
+    const float lrate = 0.05f;
+    const float K = 15.0f;
     for(int i = 0; i < map.dim.x*map.dim.y; i++)
       frequency[i] = (1.0f-lrate)*frequency[i] + lrate*K*track[i]/(1.0f + K*track[i]);;
   }
@@ -103,7 +102,7 @@ struct WaterParticle : public Particle {
     if(surface == soilmap["Water"] || surface == soilmap["Air"])
       return false;
 
-    if(length(vec2(n.x, n.z)*param.friction) < 1E-5)   //No Motion
+    if(length(vec2(n.x, n.z)*param.friction) < 1E-6)   //No Motion
       return false;
 
     //Motion Low
@@ -229,6 +228,8 @@ struct WaterParticle : public Particle {
         pos = pool.drain.first;
         pool.plane = pool.minbound.second;
 
+        float oldvolume = volume;
+
         //Compute the New Height
         for(auto& s: pool.set){
 
@@ -241,6 +242,9 @@ struct WaterParticle : public Particle {
           map.update(s, vertexpool);
 
         }
+
+        sediment *= oldvolume/volume;
+        speed = vec2(0);
 
         return true;  //Repeat Flood Step
 

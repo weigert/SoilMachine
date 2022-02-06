@@ -10,9 +10,9 @@ using namespace glm;
 
 struct WindParticle : public Particle {
 
-  WindParticle(vec2 p):Particle(p){}
+  WindParticle(Layermap& map){
 
-  WindParticle(vec2 p, Layermap& map):WindParticle(p){
+    pos = vec2(rand()%map.dim.x, rand()%map.dim.y);
 
     ipos = round(pos);
     surface = map.surface(ipos);
@@ -48,6 +48,9 @@ struct WindParticle : public Particle {
   }
 
   bool move(Layermap& map, Vertexpool<Vertex>& vertexpool){
+
+    if(soils[contains].suspension == 0.0)
+      return false;
 
     //Integer Position
     ipos = round(pos);
@@ -86,9 +89,8 @@ struct WindParticle : public Particle {
 
   bool interact(Layermap& map, Vertexpool<Vertex>& vertexpool){
 
-    //Non-Suspending
-    if(soils[contains].suspension == 0.0)
-      return false;
+  //  if(param.abrasion == 0.0)
+  //    return true;
 
     ivec2 npos = round(pos);
 
@@ -103,24 +105,24 @@ struct WindParticle : public Particle {
         double diff = map.remove(ipos, param.suspension*force);
         sediment += (param.suspension*force - diff);
 
-        cascade(ipos, map, vertexpool, true);
+        cascade(ipos, map, vertexpool, 0);
         map.update(ipos, vertexpool);
 
       }
 
     }
 
-    else {
+    else if(param.suspension > 0.0){
 
       sediment -= soils[contains].suspension*sediment;
 
       map.add(npos, map.pool.get(0.5f*soils[contains].suspension*sediment, contains));
       map.add(ipos, map.pool.get(0.5f*soils[contains].suspension*sediment, contains));
 
-      cascade(ipos, map, vertexpool, true);
+      cascade(ipos, map, vertexpool, 0);
       map.update(ipos, vertexpool);
 
-      cascade(npos, map, vertexpool, true);
+      cascade(npos, map, vertexpool, 0);
       map.update(npos, vertexpool);
 
     }

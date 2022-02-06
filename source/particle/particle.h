@@ -16,9 +16,7 @@ struct Particle {
   vec2 pos;
   vec2 speed = vec2(0);
   bool isalive = true;
-
-  Particle(vec2 p):pos(p){}
-
+  
   bool move(Layermap& map);
   bool interact(Layermap& map, Vertexpool<Vertex>& vertexpool);
 

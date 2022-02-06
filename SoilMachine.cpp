@@ -6,9 +6,9 @@
 #define WIDTH 1200
 #define HEIGHT 1000
 
-#define SIZEX 512
-#define SIZEY 512
-#define SCALE 80
+size_t SIZEX = 256;
+size_t SIZEY = 256;
+int SCALE = 80;
 
 #define POOLSIZE 10000000
 int SEED;
@@ -39,16 +39,6 @@ int main( int argc, char* args[] ) {
 		loadsoil(parse::option["soil"]);
 	else loadsoil();
 
-
-
-
-
-
-
-
-
-
-
 	//Initialize a Window
 	Tiny::view.vsync = false;
 	Tiny::window("Soil Machine", WIDTH, HEIGHT);
@@ -62,7 +52,9 @@ int main( int argc, char* args[] ) {
 	cam::roty = 45.0f;
 	cam::update();
 
-	int nwindcycles = 100;
+	bool dowindcycles = true;
+	bool dowatercycles = true;
+	int nwindcycles = 500;
 	int nwatercycles = 1000;
 	bool paused = true;
 
@@ -112,8 +104,9 @@ int main( int argc, char* args[] ) {
 					map.meshpool(vertexpool);
 				}
 
-				ImGui::Text("Memory Pool Usage: %f%%", 100.0*((double)POOLSIZE-(double)map.pool.free.size())/(double)POOLSIZE);
+				ImGui::SliderInt("World Scale", &SCALE, 15, 250);
 
+				ImGui::Text("Memory Pool Usage: %f%%", 100.0*((double)POOLSIZE-(double)map.pool.free.size())/(double)POOLSIZE);
 
 				ImGui::EndTabItem();
 			}
@@ -121,6 +114,7 @@ int main( int argc, char* args[] ) {
 			if(ImGui::BeginTabItem("Erosion")){
 
 				if(ImGui::TreeNode("Hydraulic Erosion")){
+					ImGui::Checkbox("Do Water Cycles?", &dowatercycles);
 					ImGui::DragInt("Particles per Frame", &nwatercycles, 1, 0, 2000);
 					ImGui::Checkbox("Overlay Map?", &scene::wateroverlay);
 					ImGui::Text("Frequency Texture: ");
@@ -129,6 +123,7 @@ int main( int argc, char* args[] ) {
 				}
 
 				if(ImGui::TreeNode("WindErosion")){
+					ImGui::Checkbox("Do Wind Cycles?", &dowindcycles);
 					ImGui::DragInt("Particles per Frame", &nwindcycles, 1, 0, 2000);
 					ImGui::Text("Frequency Texture: ");
 					ImGui::Image((void*)(intptr_t)windtexture.texture, ImVec2(SIZEX, SIZEY));
@@ -248,9 +243,10 @@ int main( int argc, char* args[] ) {
 
 		if(paused) return;
 
+		if(dowatercycles)
 		for(int i = 0; i < nwatercycles; i++){
 
-			WaterParticle particle(vec2(rand()%map.dim.x, rand()%map.dim.y), map);
+			WaterParticle particle(map);
 
 			while(true){
 				while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
@@ -260,8 +256,9 @@ int main( int argc, char* args[] ) {
 
 		}
 
+		if(dowindcycles)
 		for(int i = 0; i < nwindcycles; i++){
-			WindParticle particle(vec2(rand()%map.dim.x, rand()%map.dim.y), map);
+			WindParticle particle(map);
 			while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
 		}
 

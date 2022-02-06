@@ -99,8 +99,8 @@ struct WaterParticle : public Particle {
     param.friction = param.friction*(1.0f-frequency[ipos.y*map.dim.x+ipos.x]);
     evaprate = 0.005f*(1.0f-0.2f*frequency[ipos.y*map.dim.x+ipos.x]);
 
-    if(surface == soilmap["Water"] || surface == soilmap["Air"])
-      return false;
+  //  if(surface == soilmap["Water"] || surface == soilmap["Air"])
+  //    return false;
 
     if(length(vec2(n.x, n.z)*param.friction) < 1E-6)   //No Motion
       return false;
@@ -145,7 +145,8 @@ struct WaterParticle : public Particle {
       while(diff > 0.0) diff = map.remove(ipos, diff);
     }
 
-    cascade(pos, map, vertexpool, 0);
+    //Particle Cascade: Thermal Erosion!
+    Particle::cascade(pos, map, vertexpool, 0);
 
     //Update Map, Particle
     map.update(ipos, vertexpool);
@@ -162,124 +163,16 @@ struct WaterParticle : public Particle {
 
     ipos = pos;                         //Position
 
-    Pool pool(map, ipos);
-    bool tried[map.dim.x*map.dim.y] = {false};
-
-    while(volume > minvol){     //Try to Flood with Volume
-
-      const function<void(const ivec2)> fill = [&](const ivec2 ppos){
-
-        //Out of Bounds
-        if(!all(greaterThanEqual(ppos, ivec2(0))) ||
-          !all(lessThan(ppos, map.dim)))
-          return;
-
-        //Position has been tried
-        if(tried[ppos.x*map.dim.y+ppos.y])
-          return;
-
-        //Store Height at this Position
-        double height = map.height(ppos);
-
-        //Wall / Boundary: Add to Boundary, Not in Set
-        if(pool.plane < height){
-          pool.boundary[ppos] = height;
-          return;
-        }
-
-        //Drainage Point
-        if(pool.plane > height){
-
-          //No Drain yet
-          if(!pool.drained)
-            pool.drain = pair<ivec2, double>(ppos, height);
-
-          //Lower Drain
-          else if( height < pool.drain.second )
-            pool.drain = pair<ivec2, double>(ppos, height);
-
-          pool.drained = true;
-          return;
-
-        }
-
-        tried[ppos.x*map.dim.y+ppos.y] = true;
-
-        pool.set.insert(ppos);      //Part of the Pool
-        fill(ppos+ivec2( 0, 1));    //Fill Neighbors
-        fill(ppos+ivec2( 0,-1));    //Fill Neighbors
-        fill(ppos+ivec2( 1, 0));    //Fill Neighbors
-        fill(ppos+ivec2(-1, 0));    //Fill Neighbors
-        fill(ppos+ivec2( 1, 1));    //Fill Neighbors
-        fill(ppos+ivec2( 1,-1));    //Fill Neighbors
-        fill(ppos+ivec2(-1, 1));    //Fill Neighbors
-        fill(ppos+ivec2(-1,-1));    //Fill Neighbors
-
-      };
-
-      fill(pool.minbound.first);                    //Only Fill At Boundary
-
-      if(pool.set.empty())
-        break;
-
-      //Drainage Point -> Exit Loop!
-      if(pool.drained){
-
-        pos = pool.drain.first;
-        pool.plane = pool.minbound.second;
-
-        float oldvolume = volume;
-
-        //Compute the New Height
-        for(auto& s: pool.set){
-
-          if(map.surface(s) != soilmap["Water"])
-            continue;
-
-          double h = (map.height(s)-pool.plane);
-          double diff = map.remove(s, h);
-          volume += (h-diff)/volumeFactor;
-          map.update(s, vertexpool);
-
-        }
-
-        sediment *= oldvolume/volume;
-        speed = vec2(0);
-
-        return true;  //Repeat Flood Step
-
-      }
-
-      pool.boundary.erase(pool.minbound.first);     //Remove From Boundary Set
-
-      if(pool.boundary.empty())
-        break;
-
-      pool.minbound = (*pool.boundary.begin()); //Lowest Boundary Element
-      for(auto& b : pool.boundary)
-      if(b.second < pool.minbound.second)
-        pool.minbound = b;
+    map.add(ipos, map.pool.get(volume*0.001, soilmap["Water"]));
 
 
-      //We can set the plane to the height of the min boundary, or below
-      double vheight = volume/(double)pool.set.size()*volumeFactor;
-      if(pool.plane + vheight >= pool.minbound.second){
-        volume -= (pool.minbound.second - pool.plane)*pool.set.size()/volumeFactor;
-        pool.plane = pool.minbound.second;
-      }
-      else{
-        volume = 0.0f;
-        pool.plane += vheight;
-      }
+    //We can attempt to do a cascade at this position, but basically because
+    //we are water we want to either spawn a new particle at the next location
+    //or we want to cascade onto water.
 
-      //Raise water level to plane height
-      for(auto& s: pool.set)
-        map.add(s, map.pool.get(pool.plane-map.height(s), soilmap["Water"]));
 
-    }
-
-    for(auto& s: pool.set)
-      map.update(s, vertexpool);
+    Particle::cascade(ipos, map, vertexpool);
+    map.update(ipos, vertexpool);
 
     return false;
 

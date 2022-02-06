@@ -250,11 +250,45 @@ int main( int argc, char* args[] ) {
 
 			while(true){
 				while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
-		//		if(!particle.flood(map, vertexpool))
+				if(!particle.flood(map, vertexpool))
 					break;
 			}
 
 		}
+
+		// Question: What is the cost of iterating over the entire layermap once?
+
+	//	if(false)
+		{
+
+			for(size_t x = 0; x < map.dim.x; x++)
+			for(size_t y = 0; y < map.dim.y; y++){
+
+				sec* top = map.top(ivec2(x, y));
+				if(top == NULL)
+					continue;
+
+				//basically here we want to do a water cascade...
+
+				if(top->type == soilmap["Water"]){
+
+					Particle::cascade(ivec2(x,y), map, vertexpool, 1);
+
+				}
+
+//				if(top == )
+
+
+				//while(top != NULL)
+				//	top = top->prev;
+
+			}
+
+
+		}
+
+
+
 
 		if(dowindcycles)
 		for(int i = 0; i < nwindcycles; i++){

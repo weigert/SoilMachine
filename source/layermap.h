@@ -199,20 +199,24 @@ Layermap(int SEED, ivec2 _dim, Vertexpool<Vertex>& vertexpool):Layermap(SEED, _d
 
 void Layermap::add(ivec2 pos, sec* E){
 
+  //Non-Element: Don't Add
   if(E == NULL)
     return;
 
+  //Negative Size Element: Don't Add
   if(E->size <= 0){
     pool.unget(E);
     return;
   }
 
-  if(dat[pos.x*dim.y+pos.y] == NULL){             //No Element: Set Top Element
+  //Valid Element, Empty Spot: Set Top Directly
+  if(dat[pos.x*dim.y+pos.y] == NULL){
     dat[pos.x*dim.y+pos.y] = E;
     return;
   }
 
-  if(dat[pos.x*dim.y+pos.y]->type == E->type){    //Same Type: Make Taller, Remove E
+  //Valid Element, Previous Type Identical: Elongate
+  if(dat[pos.x*dim.y+pos.y]->type == E->type){
     dat[pos.x*dim.y+pos.y]->size += E->size;
     pool.unget(E);
     return;
@@ -223,13 +227,23 @@ void Layermap::add(ivec2 pos, sec* E){
   //Add to Water, but not equal to water
   if(dat[pos.x*dim.y+pos.y]->type == soilmap["Water"]){ //Switch with Water
 
+  //  pool.unget(E);
+
+    //Remove Top Element (Water)
+    sec* top = dat[pos.x*dim.y+pos.y];
+    dat[pos.x*dim.y+pos.y] = top->prev;
+
+    //Add this Element
+    add(pos, E);
+
+    //Add Water Back In
+    add(pos, top);
+
+
 /*
-    sec* top = dat[pos.x*dim.y+pos.y];  //Top Element (Water)
-    dat[pos.x*dim.y+pos.y] = top->prev;   //Top is Below
 
     //Get the Height of Top
 
-    add(pos, E);                        //Add This Guy
 
     top->size -= E->size; //Same Height
     if(top->size > 0)
@@ -243,6 +257,7 @@ void Layermap::add(ivec2 pos, sec* E){
   }
 
 
+  /*
   if(dat[pos.x*dim.y+pos.y]->prev != NULL)
   if(dat[pos.x*dim.y+pos.y]->prev->size < 0.01)
   if(dat[pos.x*dim.y+pos.y]->prev->type == E->type){    //Same Type: Make Taller, Remove E
@@ -251,6 +266,7 @@ void Layermap::add(ivec2 pos, sec* E){
     pool.unget(E);
     return;
   }
+  */
 
   //Try a sorting move???
 

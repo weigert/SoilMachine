@@ -142,6 +142,8 @@ void loadsoil( string file = "soil/default.soil" ){
 
       if(tag == "DENSITY")
         param.density = stof(val);
+      if(tag == "POROSITY")
+        param.porosity = stof(val);
       if(tag == "COLOR")
         param.color = hexcol(val);
       if(tag == "SOLUBILITY")

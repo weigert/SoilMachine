@@ -13,6 +13,7 @@ struct SurfParam {
   //General Parameters
   string name;
   float density;
+  float porosity = 0.0f;
   vec4 color = vec4(0.5, 0.5, 0.5, 1.0);
 
   //Hydrologyical Parameters
@@ -38,23 +39,19 @@ struct SurfParam {
 
 vector<SurfParam> soils = {
 
-    { "Air", 0.0f, vec4(0.27, 0.57, 0.6, 0.0),
-      0, 1.0f, 1.0f, 1.0f,
+    { "Air", 0.0f, 1.0f,
+      vec4(0.27, 0.57, 0.6, 1.0),
+      0, 0.0f, 0.0f, 0.0f,
       0, 0.0f,
-      0, 1.0f, 0.95f,
-      0, 0.0f, 0.0f},
-
-    { "Water", 1.0f, vec4(0.38, 0.53, 0.68, 1.0),
-      1, 0.0f, 0.0f, 0.0f,
-      1, 0.0f,
-      1, 0.0f, 1.0f,
-      1, 0.0f, 0.0f},
+      0, 0.0f, 0.0f,
+      0, 0.0f, 0.0f}
 
 };
 
 map<string, int> soilmap = {
-  {"Air", 0},
-  {"Water", 1},
+
+  {"Air", 0}
+
 };
 
 /*

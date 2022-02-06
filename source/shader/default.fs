@@ -54,5 +54,5 @@ return vec4(lightcolor*lightstrength*((1.0f-0.8*shade())*(diffuse + spec) + ambi
 
 
 void main(void) {
-  fragColor = vec4((phong()*ex_Color).xyz, 1.0f);
+  fragColor = vec4((phong()*ex_Color).xyz, ex_Color.w);
 }

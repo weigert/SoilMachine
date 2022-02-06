@@ -68,7 +68,7 @@ void main(void) {
 
 	ex_FragPos = (model * vec4(in_Position, 1.0f)).xyz;
 	ex_Shadow = dbvp* vec4(ex_FragPos, 1.0f);
-	ex_Normal = in_Normal;	//Pass Normal
+  ex_Normal = in_Normal;	//Pass Normal
   ex_Color = in_Color;
 
   if(wateroverlay){

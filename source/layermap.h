@@ -9,6 +9,13 @@ These components are additionally memory pooled for efficiency.
 
 Utilizes a vertexpool to avoid remeshing when updating heightmap information
 
+A layermap section has a height, a porosity and a water fraction.
+The idea is that if the water fraction is 1, then all pores are filled.
+This tells me the overall saturation of water inside.
+Layermap has a height, a porosity and a
+
+Air e.g. has porosity 1
+
 */
 
 #include "include/FastNoiseLite.h"
@@ -30,9 +37,10 @@ struct sec {
 sec* next = NULL;     //Element Above
 sec* prev = NULL;     //Element Below
 
-SurfType type = soilmap["Air"];  //Type of Surface Element
-double size = 0.0f;   //Run-Length of Element
-double floor = 0.0f;  //Cumulative Height at Bottom
+SurfType type = soilmap["Air"];   //Type of Surface Element
+double size = 0.0f;               //Run-Length of Element
+double floor = 0.0f;              //Cumulative Height at Bottom
+double saturation = 0.0f;         //Saturation with Water
 
 sec(){}
 sec(double s, SurfType t){
@@ -46,6 +54,7 @@ void reset(){
   type = soilmap["Air"];
   size = 0.0f;
   floor = 0.0f;
+  saturation = 0.0f;
 }
 
 };
@@ -145,6 +154,7 @@ uint* section = NULL;                     //Vertexpool Section Pointer
 void meshpool(Vertexpool<Vertex>&);       //Mesh based on Vertexpool
 void update(ivec2, Vertexpool<Vertex>&);  //Update Vertexpool at Position (No Remesh)
 void update(Vertexpool<Vertex>&);         //Update Vertexpool at Position (No Remesh)
+void slice(Vertexpool<Vertex>&, double);         //Update Vertexpool at Position (No Remesh)
 
 public:
 
@@ -225,7 +235,7 @@ void Layermap::add(ivec2 pos, sec* E){
   //Basically: A position Swap
 
   //Add to Water, but not equal to water
-  if(dat[pos.x*dim.y+pos.y]->type == soilmap["Water"]){ //Switch with Water
+  if(dat[pos.x*dim.y+pos.y]->type == soilmap["Air"]){ //Switch with Water
 
   //  pool.unget(E);
 
@@ -240,22 +250,9 @@ void Layermap::add(ivec2 pos, sec* E){
     add(pos, top);
 
 
-/*
-
-    //Get the Height of Top
-
-
-    top->size -= E->size; //Same Height
-    if(top->size > 0)
-      add(pos, top);                      //Add Water Back in
-
-    //Compute the Volume of
-*/
-
     return;
 
   }
-
 
   /*
   if(dat[pos.x*dim.y+pos.y]->prev != NULL)
@@ -375,8 +372,9 @@ vec3 Layermap::normal(vec2 pos){
 }
 
 vec3 Layermap::normal(ivec2 pos, Vertexpool<Vertex>& vertexpool){
-  Vertex* v = vertexpool.get(section, pos.x*dim.y+pos.y);
-  return vec3(v->normal[0], v->normal[1], v->normal[2]);
+  return normal(pos);
+  //Vertex* v = vertexpool.get(section, pos.x*dim.y+pos.y);
+  //return vec3(v->normal[0], v->normal[1], v->normal[2]);
 }
 
 vec3 Layermap::normal(vec2 pos, Vertexpool<Vertex>& vertexpool){
@@ -455,15 +453,131 @@ void Layermap::meshpool(Vertexpool<Vertex>& vertexpool){
 }
 
 void Layermap::update(ivec2 p, Vertexpool<Vertex>& vertexpool){
+
+  sec* top = dat[p.x*dim.y+p.y];
+  while(top != NULL && top->floor > (float)SLICE/(float)SCALE)
+    top = top->prev;
+
+  if(top == NULL){
+    vertexpool.fill(section, p.x*dim.y+p.y,
+      vec3(p.x, 0, p.y),
+      vec3(0,1,0),
+      soils[soilmap["Air"]].color
+    );
+  }
+
+  else if(top->floor + top->size > (float)SLICE/(float)SCALE){
+
+    if(top->floor + top->size*top->saturation > (float)SLICE/(float)SCALE)
+    vertexpool.fill(section, p.x*dim.y+p.y,
+      vec3(p.x, SLICE, p.y),
+      vec3(0,1,0),
+  //    normal(p),
+      mix(soils[soilmap["Air"]].color, soils[top->type].color, 0.6)
+    );
+
+    else
+    vertexpool.fill(section, p.x*dim.y+p.y,
+      vec3(p.x, SLICE, p.y),
+      vec3(0,1,0),
+//    normal(p),
+      soils[top->type].color
+    );
+
+  }
+
+  else{
+
+    if(top->saturation > 0)  //Fill Watertable!
+    vertexpool.fill(section, p.x*dim.y+p.y,
+      vec3(p.x, SCALE*(top->floor + top->size), p.y),
+      normal(p),
+      soils[soilmap["Air"]].color
+    );
+
+    else
+    vertexpool.fill(section, p.x*dim.y+p.y,
+      vec3(p.x, SCALE*(top->floor + top->size), p.y),
+      normal(p),
+      soils[top->type].color
+    );
+
+  }
+
+  /*
+
+  if(surface(p) == soilmap["Air"])
   vertexpool.fill(section, p.x*dim.y+p.y,
     vec3(p.x, SCALE*height(p), p.y),
     normal(p),
     soils[surface(p)].color
   );
+  else
+  vertexpool.fill(section, p.x*dim.y+p.y,
+    vec3(p.x, SCALE*height(p), p.y),
+    normal(p),
+    soils[surface(p)].color
+  );
+
+  */
+
 }
 
 void Layermap::update(Vertexpool<Vertex>& vertexpool){
   for(int i = 0; i < dim.x; i++)
   for(int j = 0; j < dim.y; j++)
     update(ivec2(i,j), vertexpool);
+}
+
+void Layermap::slice(Vertexpool<Vertex>& vertexpool, double s = SCALE){
+
+  for(int i = 0; i < dim.x; i++)
+  for(int j = 0; j < dim.y; j++){
+
+    ivec2 p = ivec2(i,j);
+
+    //Find the first element which starts below the scale!
+    sec* top = dat[p.x*dim.y+p.y];
+    while(top != NULL && top->floor > s/SCALE)
+      top = top->prev;
+
+    if(top == NULL){
+      vertexpool.fill(section, p.x*dim.y+p.y,
+        vec3(p.x, 0, p.y),
+        vec3(0,1,0),
+        soils[soilmap["Air"]].color
+      );
+    }
+
+    else if(top->floor + top->size > s/SCALE){
+      if(top->floor + top->size*top->saturation > s/SCALE)
+      vertexpool.fill(section, p.x*dim.y+p.y,
+        vec3(p.x, s, p.y),
+        vec3(0,1,0),
+        mix(vec4(1,0,0,1), soils[top->type].color, 0.6)
+      );
+      else
+      vertexpool.fill(section, p.x*dim.y+p.y,
+        vec3(p.x, s, p.y),
+        vec3(0,1,0),
+        soils[top->type].color
+      );
+    }
+
+    else{
+      if(top->saturation > 0)  //Fill Watertable!
+      vertexpool.fill(section, p.x*dim.y+p.y,
+        vec3(p.x, SCALE*(top->floor + top->size), p.y),
+        normal(p),
+        vec4(1,0,0,1)
+      );
+      else
+      vertexpool.fill(section, p.x*dim.y+p.y,
+        vec3(p.x, SCALE*(top->floor + top->size), p.y),
+        normal(p),
+        soils[top->type].color
+      );
+    }
+
+  }
 }

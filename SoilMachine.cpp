@@ -6,9 +6,10 @@
 #define WIDTH 1200
 #define HEIGHT 1000
 
-size_t SIZEX = 256;
-size_t SIZEY = 256;
+size_t SIZEX = 512;
+size_t SIZEY = 512;
 int SCALE = 80;
+int SLICE = 80;
 
 #define POOLSIZE 10000000
 int SEED;
@@ -104,9 +105,12 @@ int main( int argc, char* args[] ) {
 					map.meshpool(vertexpool);
 				}
 
-				ImGui::SliderInt("World Scale", &SCALE, 15, 250);
-
 				ImGui::Text("Memory Pool Usage: %f%%", 100.0*((double)POOLSIZE-(double)map.pool.free.size())/(double)POOLSIZE);
+
+				ImGui::SliderInt("World Scale", &SCALE, 15, 250);
+				if(ImGui::SliderInt("World Slice", &SLICE, 0, SCALE)){
+					map.update(vertexpool);
+				}
 
 				ImGui::EndTabItem();
 			}
@@ -250,42 +254,16 @@ int main( int argc, char* args[] ) {
 
 			while(true){
 				while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
-				if(!particle.flood(map, vertexpool))
+				if(!particle.flood(map, vertexpool)){
 					break;
-			}
-
-		}
-
-		// Question: What is the cost of iterating over the entire layermap once?
-
-	//	if(false)
-		{
-
-			for(size_t x = 0; x < map.dim.x; x++)
-			for(size_t y = 0; y < map.dim.y; y++){
-
-				sec* top = map.top(ivec2(x, y));
-				if(top == NULL)
-					continue;
-
-				//basically here we want to do a water cascade...
-
-				if(top->type == soilmap["Water"]){
-
-					Particle::cascade(ivec2(x,y), map, vertexpool, 1);
-
 				}
-
-//				if(top == )
-
-
-				//while(top != NULL)
-				//	top = top->prev;
-
 			}
 
-
 		}
+
+		WaterParticle::seep(map, vertexpool);
+
+
 
 
 

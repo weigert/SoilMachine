@@ -35,7 +35,7 @@ struct WindParticle : public Particle {
   SurfType contains;
   SurfParam param;
 
-  const double gravity = 0.1;
+  const double gravity = 0.25;
   const double winddominance = 0.2;
   const double windfriction = 0.8;
   const double minsed = 0.0001;
@@ -60,7 +60,7 @@ struct WindParticle : public Particle {
     updatefrequency(map, ipos);
 
     //Surface Height, No-Clip Condition
-    sheight = map.height(ipos);
+    sheight = map.height(ipos)*(float)SCALE/80.0f;
     if(height < sheight){
       height = sheight;
     }
@@ -95,17 +95,17 @@ struct WindParticle : public Particle {
     ivec2 npos = round(pos);
 
     //Surface Contact
-    if(height <= map.height(pos)){
+    if(height <= map.height(pos)*(float)SCALE/80.0f){
 
       //If this surface can conribute to this particle
       if(param.transports == contains){
 
-        double force = length(speed)*(map.height(npos)-height)*(1.0f-sediment);
+        double force = length(speed)*(map.height(npos)-height)*(float)SCALE/80.0f*(1.0f-sediment);
 
         double diff = map.remove(ipos, param.suspension*force);
         sediment += (param.suspension*force - diff);
 
-        cascade(ipos, map, vertexpool, 0);
+        cascade(ipos, map, vertexpool, 1);
         map.update(ipos, vertexpool);
 
       }
@@ -119,10 +119,10 @@ struct WindParticle : public Particle {
       map.add(npos, map.pool.get(0.5f*soils[contains].suspension*sediment, contains));
       map.add(ipos, map.pool.get(0.5f*soils[contains].suspension*sediment, contains));
 
-      cascade(ipos, map, vertexpool, 0);
+      cascade(ipos, map, vertexpool, 1);
       map.update(ipos, vertexpool);
 
-      cascade(npos, map, vertexpool, 0);
+      cascade(npos, map, vertexpool, 1);
       map.update(npos, vertexpool);
 
     }

@@ -56,7 +56,7 @@ struct Particle {
     for(auto& npos: sn){
 
       //Full Height-Different Between Positions!
-      float diff = (map.height(ipos) - map.height(npos));
+      float diff = (map.height(ipos) - map.height(npos))*(float)SCALE/80.0f;
       if(diff == 0)   //No Height Difference
         continue;
 

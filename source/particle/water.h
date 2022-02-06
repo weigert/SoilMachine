@@ -92,7 +92,7 @@ struct WaterParticle : public Particle {
   bool interact(Layermap& map, Vertexpool<Vertex>& vertexpool){
 
     //Equilibrium Sediment Transport Amount
-    float c_eq = param.solubility*(map.height(ipos)-map.height(pos));
+    float c_eq = param.solubility*(map.height(ipos)-map.height(pos))*(float)SCALE/80.0f;
     if(c_eq < 0.0) c_eq = 0.0;
 
     //Execute Transport to Particle
@@ -176,7 +176,7 @@ struct WaterParticle : public Particle {
     for(auto& npos: sn){
 
       //Full Height-Different Between Positions!
-      float diff = (map.height(ipos) - map.height(npos));
+      float diff = (map.height(ipos) - map.height(npos))*(float)SCALE/80.0f;
       if(diff == 0)   //No Height Difference
         continue;
 
@@ -234,25 +234,24 @@ struct WaterParticle : public Particle {
 
   static void seep(Layermap& map, Vertexpool<Vertex>& vertexpool){
 
-    //Sideways Movement, Currently only on Top-Layer
+    for(size_t x = 0; x < map.dim.x; x++)
+    for(size_t y = 0; y < map.dim.y; y++){
 
-		for(size_t x = 0; x < map.dim.x; x++)
-		for(size_t y = 0; y < map.dim.y; y++){
+      sec* top = map.top(ivec2(x, y));
+      double pressure = 0.0f;            //Pressure Increases Moving Down
+      if(top == NULL) continue;
 
-			sec* top = map.top(ivec2(x,y));
-			if(top == NULL) continue;
-    //  if(top->type != soilmap["Air"]) continue;
       WaterParticle::cascade(ivec2(x,y), map, vertexpool, 1);
+      map.update(ivec2(x,y), vertexpool);
 
-	  }
-
-    // Downward Seepage
+    }
 
     for(size_t x = 0; x < map.dim.x; x++)
     for(size_t y = 0; y < map.dim.y; y++){
 
       sec* top = map.top(ivec2(x, y));
-      float pressure = 0.0f;            //Pressure Increases Moving Down
+      double pressure = 0.0f;            //Pressure Increases Moving Down
+      if(top == NULL) continue;
 
       while(top != NULL && top->prev != NULL){
 
@@ -261,43 +260,44 @@ struct WaterParticle : public Particle {
         SurfParam param = soils[top->type];
         SurfParam nparam = soils[prev->type];
 
-        float vol = top->size*top->saturation*param.porosity;
+        // Volume Top Layer
+        double vol = top->size*top->saturation*param.porosity;
 
-        float nevol = prev->size*(1.0f - prev->saturation)*nparam.porosity;
-        float nvol = prev->size*prev->saturation*nparam.porosity;
+        //Volume Bottom Layer
+        double nvol = prev->size*prev->saturation*nparam.porosity;
+
+        //Empty Volume Bottom Layer
+        double nevol = prev->size*(1.0f - prev->saturation)*nparam.porosity;
+
+        double seepage = 0.5f;
 
         // Compute Pressure
-        pressure *= (1.0f - param.porosity);  //Pressure Drop
-        pressure += vol;                      //Increase
-
+        //pressure *= (1.0f - param.porosity);  //Pressure Drop
+        //pressure += vol;                      //Increase
         //Seepage Rate (Top-To-Bottom)
-      //	float seepage = 1.0f / (1.0f + pressure * );
-        float seepage = 0.01f;
+      //	double seepage = 1.0f / (1.0f + pressure * );
 
         //Transferred Volume is the Smaller Amount!
-        float transfer = seepage*(vol < nevol)?vol:nevol;
+        double transfer = (vol < nevol) ? vol : nevol;
+        if(transfer < 1E-6) seepage = 1.0f; //Just Remove the Rest
 
-        if(transfer > 0){
+        if(transfer >= 0){
 
-            //Remove from Upper Guy
-            if(top->type == soilmap["Air"]){
-              //Remove the Actual Height!
-              double diff = map.remove(ivec2(x,y), transfer);
-              //Leave saturation at 1
-            }
-            else {
-              top->saturation = (vol - transfer) / (top->size*param.porosity);
-            }
+          // Remove from Top Layer
+          if(top->type == soilmap["Air"])
+            double diff = map.remove(ivec2(x,y), seepage*transfer);
+          else
+            top->saturation -= (seepage*transfer) / (top->size*param.porosity);
 
-          //Add to Lower Guy!
-          prev->saturation = (nvol + transfer) / (prev->size*nparam.porosity);
+          prev->saturation += (seepage*transfer) / (prev->size*nparam.porosity);
 
         }
 
         top = prev;
 
-
       }
+
+      map.update(ivec2(x,y), vertexpool);
 
     }
 

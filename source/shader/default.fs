@@ -46,7 +46,7 @@ vec4 phong() {
 
 float diffuse = clamp(dot(ex_Normal, normalize(lightpos)), 0.2, 0.8);
 float ambient = 0.3;
-float spec = 0.7*pow(max(dot(normalize(lookdir), normalize(reflect(lightpos, ex_Normal))), 0.0), 32.0);
+float spec = 0.2*pow(max(dot(normalize(lookdir), normalize(reflect(lightpos, ex_Normal))), 0.0), 32.0);
 
 return vec4(lightcolor*lightstrength*((1.0f-0.8*shade())*(diffuse + spec) + ambient ), 1.0f);
 

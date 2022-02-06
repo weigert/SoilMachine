@@ -105,7 +105,7 @@ struct WindParticle : public Particle {
         double diff = map.remove(ipos, param.suspension*force);
         sediment += (param.suspension*force - diff);
 
-        cascade(ipos, map, vertexpool, 1);
+        Particle::cascade(ipos, map, vertexpool, 1);
         map.update(ipos, vertexpool);
 
       }
@@ -119,10 +119,10 @@ struct WindParticle : public Particle {
       map.add(npos, map.pool.get(0.5f*soils[contains].suspension*sediment, contains));
       map.add(ipos, map.pool.get(0.5f*soils[contains].suspension*sediment, contains));
 
-      cascade(ipos, map, vertexpool, 1);
+      Particle::cascade(ipos, map, vertexpool, 1);
       map.update(ipos, vertexpool);
 
-      cascade(npos, map, vertexpool, 1);
+      Particle::cascade(npos, map, vertexpool, 1);
       map.update(npos, vertexpool);
 
     }

@@ -180,8 +180,8 @@ struct WaterParticle : public Particle {
       if(diff == 0)   //No Height Difference
         continue;
 
-      //The Maximum Difference Allowed between two Neighbors
       sec* top = (diff > 0)?map.top(ipos):map.top(npos);
+      sec* bottom = (diff > 0)?map.top(npos):map.top(ipos);
       SurfType type = (diff > 0)?map.surface(ipos):map.surface(npos);
       SurfParam param = soils[type];
 
@@ -196,8 +196,13 @@ struct WaterParticle : public Particle {
 
       //Actual Amount of Water Available
 
+      //Really, we need the total height of the water table.
+
       float wheight = (top != NULL)?top->size * param.porosity * top->saturation:0.0f;
       transfer = (wheight < transfer)?wheight:transfer;
+
+      if(top->floor + wheight < bottom->floor + bottom->size)
+        transfer = 0;
 
       if(transfer <= 0)
         continue;
@@ -241,17 +246,7 @@ struct WaterParticle : public Particle {
       double pressure = 0.0f;            //Pressure Increases Moving Down
       if(top == NULL) continue;
 
-      WaterParticle::cascade(ivec2(x,y), map, vertexpool, 1);
-      map.update(ivec2(x,y), vertexpool);
-
-    }
-
-    for(size_t x = 0; x < map.dim.x; x++)
-    for(size_t y = 0; y < map.dim.y; y++){
-
-      sec* top = map.top(ivec2(x, y));
-      double pressure = 0.0f;            //Pressure Increases Moving Down
-      if(top == NULL) continue;
+//      WaterParticle::cascade(ivec2(x,y), map, vertexpool, 0);
 
       while(top != NULL && top->prev != NULL){
 
@@ -269,7 +264,7 @@ struct WaterParticle : public Particle {
         //Empty Volume Bottom Layer
         double nevol = prev->size*(1.0f - prev->saturation)*nparam.porosity;
 
-        double seepage = 0.5f;
+        double seepage = 0.1f;
 
         // Compute Pressure
         //pressure *= (1.0f - param.porosity);  //Pressure Drop
@@ -297,6 +292,18 @@ struct WaterParticle : public Particle {
 
       }
 
+      map.update(ivec2(x,y), vertexpool);
+
+    }
+
+    for(size_t x = 0; x < map.dim.x; x++)
+    for(size_t y = 0; y < map.dim.y; y++){
+
+      sec* top = map.top(ivec2(x, y));
+      double pressure = 0.0f;            //Pressure Increases Moving Down
+      if(top == NULL) continue;
+
+      WaterParticle::cascade(ivec2(x,y), map, vertexpool, 1);
       map.update(ivec2(x,y), vertexpool);
 
     }

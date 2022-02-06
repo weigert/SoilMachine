@@ -25,7 +25,7 @@ struct WaterParticle : public Particle {
   const float minvol = 0.01;
   float evaprate = 0.001;
 
-  const double volumeFactor = 0.5;    //"Water Deposition Rate"
+  const double volumeFactor = 0.001;    //"Water Deposition Rate"
   int spill = 3;
 
   //Helper Properties
@@ -97,7 +97,7 @@ struct WaterParticle : public Particle {
 
     //Execute Transport to Particle
     float cdiff = c_eq - sediment;
-    sediment += param.equrate*cdiff;
+    sediment += param.equrate*cdiff*volume;
 
     //Erode Sediment IN Particle
     if((float)(soils[contains].erosionrate) < frequency[ipos.y*map.dim.x+ipos.x])
@@ -105,11 +105,11 @@ struct WaterParticle : public Particle {
 
     //Add Sediment to Map
     if(cdiff < 0)
-      map.add(ipos, map.pool.get(-param.equrate*cdiff, contains));
+      map.add(ipos, map.pool.get(-param.equrate*cdiff*volume, contains));
 
     //Remove Sediment from Map
     if(cdiff > 0){
-      double diff = map.remove(ipos, param.equrate*cdiff);
+      double diff = map.remove(ipos, param.equrate*cdiff*volume);
       while(diff > 0.0) diff = map.remove(ipos, diff);
     }
 
@@ -131,11 +131,14 @@ struct WaterParticle : public Particle {
 
     ipos = pos;                         //Position
 
-    sec* SAT =  map.pool.get(volume*0.001, soilmap["Air"]);
+    //Add the Soil First!
+    map.add(ipos, map.pool.get(param.equrate*sediment*volume, contains));
+
+    sec* SAT =  map.pool.get(volume*volumeFactor, soilmap["Air"]);
     SAT->saturation = 1.0f;
     map.add(ipos, SAT);
     map.update(ipos, vertexpool);
-    WaterParticle::cascade(ipos, map, vertexpool);
+    WaterParticle::cascade(ipos, map, vertexpool, 1);
 
     return false;
 

@@ -6,8 +6,8 @@
 #define WIDTH 1200
 #define HEIGHT 1000
 
-size_t SIZEX = 512;
-size_t SIZEY = 512;
+size_t SIZEX = 256;
+size_t SIZEY = 256;
 int SCALE = 80;
 int SLICE = 80;
 

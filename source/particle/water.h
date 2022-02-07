@@ -138,7 +138,7 @@ struct WaterParticle : public Particle {
     SAT->saturation = 1.0f;
     map.add(ipos, SAT);
     map.update(ipos, vertexpool);
-    WaterParticle::cascade(ipos, map, vertexpool, 1);
+  //  WaterParticle::cascade(ipos, map, vertexpool, 1);
 
     return false;
 
@@ -175,42 +175,58 @@ struct WaterParticle : public Particle {
 
     for(auto& npos: sn){
 
-      //Full Height-Different Between Positions!
-      float diff = (map.height(ipos) - map.height(npos))*(float)SCALE/80.0f;
+      sec* secA = map.top(ipos);
+      sec* secB = map.top(npos);
+
+      // Water Table Heights
+      float whA = 0, whB = 0;
+      if(secA != NULL)
+        whA = secA->size*soils[secA->type].porosity*secA->saturation;
+      if(secB != NULL)
+        whB = secB->size*soils[secB->type].porosity*secB->saturation;
+
+      // Floor Values
+      float fA = 0, fB = 0;
+      if(secA != NULL)
+        fA = secA->floor;
+      if(secB != NULL)
+        fB = secB->floor;
+
+      // Actual Height Difference Between Watertables
+    //  float diff = (fA + whA - fB - whB)*(float)SCALE/80.0f;
+      float diff = (map.height(ipos)-map.height(npos))*(float)SCALE/80.0f;
       if(diff == 0)   //No Height Difference
         continue;
 
-      sec* top = (diff > 0)?map.top(ipos):map.top(npos);
-      sec* bottom = (diff > 0)?map.top(npos):map.top(ipos);
-      SurfType type = (diff > 0)?map.surface(ipos):map.surface(npos);
-      SurfParam param = soils[type];
+      // Higher and Lower Section
+      sec* top = (diff > 0)?secA:secB;
+      sec* bot = (diff > 0)?secB:secA;
 
-      if(top == NULL)
+      //Maximum Transferrable Amount of Water (Height Difference)
+      float transfer = abs(diff) / 2.0f;
+
+      // We are currently only cascading air
+      if(top->type != soilmap["Air"])
         continue;
 
-      //The Amount of Excess Difference!
-      float excess = abs(diff);
-
-      //Maximum Transferrable Amount of Water
-      float transfer = excess / 2.0f;
-
       //Actual Amount of Water Available
+      float wh = top->size;
+      transfer = (wh < transfer) ? wh : transfer;
 
-      //Really, we need the total height of the water table.
 
-      float wheight = (top != NULL)?top->size * param.porosity * top->saturation:0.0f;
-      transfer = (wheight < transfer)?wheight:transfer;
-
-      if(top->floor + wheight < bottom->floor + bottom->size)
-        transfer = 0;
 
       if(transfer <= 0)
         continue;
 
+    //  cout<<wh<<" "<<transfer<<" "<<diff<<"  /  ";
+
       bool recascade = false;
+
+    //  continue;
 
       //Cap by Maximum Transferrable Amount
       if(diff > 0){
+
         double diff = map.remove(ipos, transfer);
         if(diff != 0) recascade = true;
         if(transfer > 0) recascade = true;
@@ -218,9 +234,11 @@ struct WaterParticle : public Particle {
         map.top(npos)->saturation = 1.0f;
         map.update(npos, vertexpool);
         map.update(ipos, vertexpool);
+
       }
 
-      else{
+      else {
+
         double diff = map.remove(npos, transfer);
         if(diff != 0) recascade = true;
         if(transfer > 0) recascade = true;
@@ -228,6 +246,7 @@ struct WaterParticle : public Particle {
         map.top(ipos)->saturation = 1.0f;
         map.update(npos, vertexpool);
         map.update(ipos, vertexpool);
+
       }
 
       if(recascade && transferloop > 0)
@@ -239,6 +258,7 @@ struct WaterParticle : public Particle {
 
   static void seep(Layermap& map, Vertexpool<Vertex>& vertexpool){
 
+
     for(size_t x = 0; x < map.dim.x; x++)
     for(size_t y = 0; y < map.dim.y; y++){
 
@@ -246,7 +266,17 @@ struct WaterParticle : public Particle {
       double pressure = 0.0f;            //Pressure Increases Moving Down
       if(top == NULL) continue;
 
-//      WaterParticle::cascade(ivec2(x,y), map, vertexpool, 0);
+      WaterParticle::cascade(ivec2(x,y), map, vertexpool, 1);
+      map.update(ivec2(x,y), vertexpool);
+
+    }
+
+    for(size_t x = 0; x < map.dim.x; x++)
+    for(size_t y = 0; y < map.dim.y; y++){
+
+      sec* top = map.top(ivec2(x, y));
+      double pressure = 0.0f;            //Pressure Increases Moving Down
+      if(top == NULL) continue;
 
       while(top != NULL && top->prev != NULL){
 
@@ -276,7 +306,7 @@ struct WaterParticle : public Particle {
         double transfer = (vol < nevol) ? vol : nevol;
         if(transfer < 1E-6) seepage = 1.0f; //Just Remove the Rest
 
-        if(transfer >= 0){
+        if(transfer > 0){
 
           // Remove from Top Layer
           if(top->type == soilmap["Air"])
@@ -296,19 +326,11 @@ struct WaterParticle : public Particle {
 
     }
 
-    for(size_t x = 0; x < map.dim.x; x++)
-    for(size_t y = 0; y < map.dim.y; y++){
 
-      sec* top = map.top(ivec2(x, y));
-      double pressure = 0.0f;            //Pressure Increases Moving Down
-      if(top == NULL) continue;
 
-      WaterParticle::cascade(ivec2(x,y), map, vertexpool, 1);
-      map.update(ivec2(x,y), vertexpool);
-
-    }
 
   }
+
 
 };
 

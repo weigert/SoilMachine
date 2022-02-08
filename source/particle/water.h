@@ -241,7 +241,7 @@ struct WaterParticle : public Particle {
       double wh = top->size;
       transfer = (wh < transfer) ? wh : transfer;
 
-      if(transfer < 0)
+      if(transfer <= 0)
         continue;
 
       //we are cascading an amount which is equal to our volume!
@@ -274,6 +274,7 @@ struct WaterParticle : public Particle {
           recascade = true;
         if(transfer > 0) recascade = true;
         map.add(bpos, map.pool.get(transfer, soilmap["Air"]));
+        map.top(bpos)->saturation = 1.0f;
         map.update(tpos, vertexpool);
         map.update(bpos, vertexpool);
 
@@ -310,7 +311,7 @@ struct WaterParticle : public Particle {
       //Empty Volume Bottom Layer
       double nevol = prev->size*(1.0 - prev->saturation)*nparam.porosity;
 
-      double seepage = 0.9;//0.1f;
+      double seepage = 1.0;//0.1f;
 
       // Compute Pressure
       //pressure *= (1.0f - param.porosity);  //Pressure Drop

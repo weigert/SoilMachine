@@ -488,14 +488,15 @@ void Layermap::update(ivec2 p, Vertexpool<Vertex>& vertexpool){
 
   else{
 
+/*
     if(top->saturation == 1)  //Fill Watertable!
     vertexpool.fill(section, p.x*dim.y+p.y,
       vec3(p.x, SCALE*(top->floor + top->size), p.y),
       normal(p),
       soils[soilmap["Air"]].color
     );
-
-    else
+*/
+//    else
     vertexpool.fill(section, p.x*dim.y+p.y,
       vec3(p.x, SCALE*(top->floor + top->size), p.y),
       normal(p),
@@ -565,7 +566,7 @@ void Layermap::slice(Vertexpool<Vertex>& vertexpool, double s = SCALE){
     }
 
     else{
-      if(top->saturation > 0)  //Fill Watertable!
+      if(top->saturation == 0)  //Fill Watertable!
       vertexpool.fill(section, p.x*dim.y+p.y,
         vec3(p.x, SCALE*(top->floor + top->size), p.y),
         normal(p),

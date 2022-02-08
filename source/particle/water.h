@@ -19,13 +19,13 @@ struct WaterParticle : public Particle {
   }
 
   //Core Properties
-  float volume = 1.0;   //This will vary in time
-  float sediment = 0.0; //Fraction of Volume that is Sediment!
+  double volume = 1.0;   //This will vary in time
+  double sediment = 0.0; //Fraction of Volume that is Sediment!
 
-  const float minvol = 0.01;
-  float evaprate = 0.001;
+  const double minvol = 0.01;
+  double evaprate = 0.001;
 
-  const double volumeFactor = 0.001;    //"Water Deposition Rate"
+  static double volumeFactor;
   int spill = 3;
 
   //Helper Properties
@@ -61,16 +61,14 @@ struct WaterParticle : public Particle {
     n = map.normal(ipos);             //Surface Normal Vector
     surface = map.surface(ipos);      //Surface Composition
     param = soils[surface];           //Surface Composition
+    evaprate = 0.001;                 //Reset Evaprate
     updatefrequency(map, ipos);
 
     //Modify Parameters Based on Frequency
     param.friction = param.friction*(1.0f-frequency[ipos.y*map.dim.x+ipos.x]);
-    evaprate = 0.005f*(1.0f-0.2f*frequency[ipos.y*map.dim.x+ipos.x]);
+    evaprate = evaprate*(1.0f-0.2f*frequency[ipos.y*map.dim.x+ipos.x]);
 
-  //  if(surface == soilmap["Water"] || surface == soilmap["Air"])
-  //    return false;
-
-    if(length(vec2(n.x, n.z)*param.friction) < 1E-6)   //No Motion
+    if(length(vec2(n.x, n.z)*param.friction) < 1E-5)   //No Motion
       return false;
 
     //Motion Low
@@ -92,33 +90,46 @@ struct WaterParticle : public Particle {
   bool interact(Layermap& map, Vertexpool<Vertex>& vertexpool){
 
     //Equilibrium Sediment Transport Amount
-    float c_eq = param.solubility*(map.height(ipos)-map.height(pos))*(float)SCALE/80.0f;
+    double c_eq = param.solubility*(map.height(ipos)-map.height(pos))*(double)SCALE/80.0;
     if(c_eq < 0.0) c_eq = 0.0;
-
-    //Execute Transport to Particle
-    float cdiff = c_eq - sediment;
-    sediment += param.equrate*cdiff*volume;
+    if(c_eq > 1.0) c_eq = 1.0;
 
     //Erode Sediment IN Particle
-    if((float)(soils[contains].erosionrate) < frequency[ipos.y*map.dim.x+ipos.x])
+    if((double)(soils[contains].erosionrate) < frequency[ipos.y*map.dim.x+ipos.x])
       contains = soils[contains].erodes;
 
-    //Add Sediment to Map
-    if(cdiff < 0)
-      map.add(ipos, map.pool.get(-param.equrate*cdiff*volume, contains));
+    //Execute Transport to Particle
+    double cdiff = c_eq - sediment;
 
     //Remove Sediment from Map
-    if(cdiff > 0){
+
+    if(cdiff > 0) {
+
+      sediment += param.equrate*cdiff;
+      contains = soils[map.surface(ipos)].transports;
+      if(volume > 1) volume = 1;
       double diff = map.remove(ipos, param.equrate*cdiff*volume);
-      while(diff > 0.0) diff = map.remove(ipos, diff);
+      while(abs(diff) > 1E-8){
+        diff = map.remove(ipos, diff);
+      }
+
+    }
+
+    //Add Sediment to Map
+
+    else if(cdiff < 0) {
+
+      sediment += soils[contains].equrate*cdiff;
+      map.add(ipos, map.pool.get(-soils[contains].equrate*cdiff*volume, contains));
+
     }
 
     //Particle Cascade: Thermal Erosion!
     Particle::cascade(pos, map, vertexpool, 0);
 
     //Update Map, Particle
-    map.update(ipos, vertexpool);
     sediment /= (1.0-evaprate);
+    if(sediment > 1.0) sediment = 1.0;
     volume *= (1.0-evaprate);
     return (volume > minvol);
 
@@ -129,25 +140,31 @@ struct WaterParticle : public Particle {
     if(volume < minvol || spill-- <= 0)
       return false;
 
-    ipos = pos;                         //Position
+    ipos = pos;
 
-    //Add the Soil First!
-    map.add(ipos, map.pool.get(param.equrate*sediment*volume, contains));
+    // Add Water
 
-    sec* SAT =  map.pool.get(volume*volumeFactor, soilmap["Air"]);
-    SAT->saturation = 1.0f;
-    map.add(ipos, SAT);
+    // Add Remaining Soil
+
+    map.add(ipos, map.pool.get(sediment*soils[contains].equrate, contains));
+    Particle::cascade(pos, map, vertexpool, 0);
+
+    map.add(ipos, map.pool.get(volume*volumeFactor, soilmap["Air"]));
+    seep(ipos, map, vertexpool);
+    WaterParticle::cascade(ipos, map, vertexpool, spill);
+
     map.update(ipos, vertexpool);
-  //  WaterParticle::cascade(ipos, map, vertexpool, 1);
-
     return false;
 
   }
 
-  //This is applied to multiple types of erosion, so I put it in here!
+
+
+
+
   static void cascade(vec2 pos, Layermap& map, Vertexpool<Vertex>& vertexpool, int transferloop = 0){
 
-    ivec2 ipos = round(pos);
+    ivec2 ipos = pos;
 
     vector<ivec2> n = {
       ivec2(-1, -1),
@@ -179,22 +196,30 @@ struct WaterParticle : public Particle {
       sec* secB = map.top(npos);
 
       // Water Table Heights
-      float whA = 0, whB = 0;
-      if(secA != NULL)
-        whA = secA->size*soils[secA->type].porosity*secA->saturation;
-      if(secB != NULL)
-        whB = secB->size*soils[secB->type].porosity*secB->saturation;
+      double whA = 0, whB = 0;
+      if(secA != NULL){
+        if(secA->type == soilmap["Air"])
+        whA = secA->size;//*soils[secA->type].porosity*secA->saturation;
+        else whA = secA->size;
+      }
+      if(secB != NULL){
+        if(secB->type == soilmap["Air"])
+        whB = secB->size;//*soils[secB->type].porosity*secB->saturation;
+        else whB = secB->size;
+      }
 
       // Floor Values
-      float fA = 0, fB = 0;
+      double fA = 0.0;
+      double fB = 0.0;
+
       if(secA != NULL)
         fA = secA->floor;
+
       if(secB != NULL)
         fB = secB->floor;
 
       // Actual Height Difference Between Watertables
-    //  float diff = (fA + whA - fB - whB)*(float)SCALE/80.0f;
-      float diff = (map.height(ipos)-map.height(npos))*(float)SCALE/80.0f;
+      double diff = (fA + whA - fB - whB)*(double)SCALE/80.0;
       if(diff == 0)   //No Height Difference
         continue;
 
@@ -202,50 +227,107 @@ struct WaterParticle : public Particle {
       sec* top = (diff > 0)?secA:secB;
       sec* bot = (diff > 0)?secB:secA;
 
+
       //Maximum Transferrable Amount of Water (Height Difference)
-      float transfer = abs(diff) / 2.0f;
+      double transfer = abs(diff) / 2.0;
 
       // We are currently only cascading air
       if(top->type != soilmap["Air"])
         continue;
 
       //Actual Amount of Water Available
-      float wh = top->size;
+      double wh = top->size;
       transfer = (wh < transfer) ? wh : transfer;
 
-
-
-      if(transfer <= 0)
+      if(transfer < 0)
         continue;
 
-    //  cout<<wh<<" "<<transfer<<" "<<diff<<"  /  ";
+      //we are cascading an amount which is equal to our volume!
 
       bool recascade = false;
 
-    //  continue;
 
-      //Cap by Maximum Transferrable Amount
-      if(diff > 0){
 
-        double diff = map.remove(ipos, transfer);
-        if(diff != 0) recascade = true;
-        if(transfer > 0) recascade = true;
-        map.add(npos, map.pool.get(transfer, soilmap["Air"]));
-        map.top(npos)->saturation = 1.0f;
-        map.update(npos, vertexpool);
-        map.update(ipos, vertexpool);
+      if(transfer == wh){
+
+
+
+        if(diff > 0) {
+
+          double diff = map.remove(ipos, transfer);
+          map.update(ipos, vertexpool);
+
+
+
+          WaterParticle particle(map);
+          particle.speed = sqrt(2.0f)*normalize(glm::vec2(npos)-glm::vec2(ipos));
+          particle.pos = ipos;
+          particle.spill = transferloop;
+          particle.volume = transfer / WaterParticle::volumeFactor;
+
+          while(true){
+            while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
+            if(!particle.flood(map, vertexpool))
+              break;
+          }
+
+        }
+
+        else {
+
+          double diff = map.remove(npos, transfer);
+          map.update(npos, vertexpool);
+
+
+
+          WaterParticle particle(map);
+          particle.speed = sqrt(2.0f)*normalize(glm::vec2(ipos)-glm::vec2(npos));
+          particle.pos = npos;
+          particle.spill = transferloop;
+          particle.volume = transfer / WaterParticle::volumeFactor;
+
+          while(true){
+            while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
+            if(!particle.flood(map, vertexpool))
+              break;
+          }
+
+
+
+        }
+
+
 
       }
 
+
+
       else {
 
-        double diff = map.remove(npos, transfer);
-        if(diff != 0) recascade = true;
-        if(transfer > 0) recascade = true;
-        map.add(ipos, map.pool.get(transfer, soilmap["Air"]));
-        map.top(ipos)->saturation = 1.0f;
-        map.update(npos, vertexpool);
-        map.update(ipos, vertexpool);
+        //Cap by Maximum Transferrable Amount
+        if(diff > 0){
+
+          double diff = map.remove(ipos, transfer);
+          if(diff != 0) recascade = true;
+          if(transfer > 0) recascade = true;
+          map.add(npos, map.pool.get(transfer, soilmap["Air"]));
+          map.top(npos)->saturation = 1.0f;
+          map.update(npos, vertexpool);
+          map.update(ipos, vertexpool);
+
+        }
+
+        else {
+
+          double diff = map.remove(npos, transfer);
+          if(diff != 0) recascade = true;
+          if(transfer > 0) recascade = true;
+          map.add(ipos, map.pool.get(transfer, soilmap["Air"]));
+          map.top(ipos)->saturation = 1.0f;
+          map.update(npos, vertexpool);
+          map.update(ipos, vertexpool);
+
+        }
 
       }
 
@@ -256,83 +338,75 @@ struct WaterParticle : public Particle {
 
   }
 
-  static void seep(Layermap& map, Vertexpool<Vertex>& vertexpool){
+  static void seep(vec2 pos, Layermap& map, Vertexpool<Vertex>& vertexpool){
 
+    ivec2 ipos = pos;
 
-    for(size_t x = 0; x < map.dim.x; x++)
-    for(size_t y = 0; y < map.dim.y; y++){
+    sec* top = map.top(ipos);
+    double pressure = 0.0f;            //Pressure Increases Moving Down
+    if(top == NULL) return;
 
-      sec* top = map.top(ivec2(x, y));
-      double pressure = 0.0f;            //Pressure Increases Moving Down
-      if(top == NULL) continue;
+    while(top != NULL && top->prev != NULL){
 
-      WaterParticle::cascade(ivec2(x,y), map, vertexpool, 1);
-      map.update(ivec2(x,y), vertexpool);
+      sec* prev = top->prev;
 
-    }
+      SurfParam param = soils[top->type];
+      SurfParam nparam = soils[prev->type];
 
-    for(size_t x = 0; x < map.dim.x; x++)
-    for(size_t y = 0; y < map.dim.y; y++){
+      // Volume Top Layer
+      double vol = top->size*top->saturation*param.porosity;
 
-      sec* top = map.top(ivec2(x, y));
-      double pressure = 0.0f;            //Pressure Increases Moving Down
-      if(top == NULL) continue;
+      //Volume Bottom Layer
+      double nvol = prev->size*prev->saturation*nparam.porosity;
 
-      while(top != NULL && top->prev != NULL){
+      //Empty Volume Bottom Layer
+      double nevol = prev->size*(1.0 - prev->saturation)*nparam.porosity;
 
-        sec* prev = top->prev;
+      double seepage = 0.9;//0.1f;
 
-        SurfParam param = soils[top->type];
-        SurfParam nparam = soils[prev->type];
+      // Compute Pressure
+      //pressure *= (1.0f - param.porosity);  //Pressure Drop
+      //pressure += vol;                      //Increase
+      //Seepage Rate (Top-To-Bottom)
+    //	double seepage = 1.0f / (1.0f + pressure * );
 
-        // Volume Top Layer
-        double vol = top->size*top->saturation*param.porosity;
+      //Transferred Volume is the Smaller Amount!
+      double transfer = (vol < nevol) ? vol : nevol;
+      if(transfer < 1E-6) seepage = 1.0; //Just Remove the Rest
 
-        //Volume Bottom Layer
-        double nvol = prev->size*prev->saturation*nparam.porosity;
+      if(transfer > 0){
 
-        //Empty Volume Bottom Layer
-        double nevol = prev->size*(1.0f - prev->saturation)*nparam.porosity;
+        // Remove from Top Layer
+        if(top->type == soilmap["Air"])
+          double diff = map.remove(ipos, seepage*transfer);
+        else
+          top->saturation -= (seepage*transfer) / (top->size*param.porosity);
 
-        double seepage = 0.1f;
-
-        // Compute Pressure
-        //pressure *= (1.0f - param.porosity);  //Pressure Drop
-        //pressure += vol;                      //Increase
-        //Seepage Rate (Top-To-Bottom)
-      //	double seepage = 1.0f / (1.0f + pressure * );
-
-        //Transferred Volume is the Smaller Amount!
-        double transfer = (vol < nevol) ? vol : nevol;
-        if(transfer < 1E-6) seepage = 1.0f; //Just Remove the Rest
-
-        if(transfer > 0){
-
-          // Remove from Top Layer
-          if(top->type == soilmap["Air"])
-            double diff = map.remove(ivec2(x,y), seepage*transfer);
-          else
-            top->saturation -= (seepage*transfer) / (top->size*param.porosity);
-
-          prev->saturation += (seepage*transfer) / (prev->size*nparam.porosity);
-
-        }
-
-        top = prev;
+        prev->saturation += (seepage*transfer) / (prev->size*nparam.porosity);
 
       }
 
-      map.update(ivec2(x,y), vertexpool);
+      top = prev;
 
     }
 
-
-
+    map.update(ipos, vertexpool);
 
   }
 
+  static void seep(Layermap& map, Vertexpool<Vertex>& vertexpool){
+
+    for(size_t x = 0; x < map.dim.x; x++)
+    for(size_t y = 0; y < map.dim.y; y++){
+      seep(ivec2(x,y), map, vertexpool);
+      WaterParticle::cascade(ivec2(x,y), map, vertexpool, 3);
+    }
+
+  }
 
 };
+
+double WaterParticle::volumeFactor = 0.001;
 
 float* WaterParticle::frequency = new float[SIZEX*SIZEY]{0.0f};
 float* WaterParticle::track = new float[SIZEX*SIZEY]{0.0f};

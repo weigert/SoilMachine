@@ -108,7 +108,7 @@ int main( int argc, char* args[] ) {
 				ImGui::Text("Memory Pool Usage: %f%%", 100.0*((double)POOLSIZE-(double)map.pool.free.size())/(double)POOLSIZE);
 
 				ImGui::SliderInt("World Scale", &SCALE, 15, 250);
-				if(ImGui::SliderInt("World Slice", &SLICE, 0, SCALE)){
+				if(ImGui::SliderInt("World Slice", &SLICE, 0, 2*SCALE)){
 					map.update(vertexpool);
 				}
 
@@ -254,9 +254,8 @@ int main( int argc, char* args[] ) {
 
 			while(true){
 				while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
-				if(!particle.flood(map, vertexpool)){
+				if(!particle.flood(map, vertexpool))
 					break;
-				}
 			}
 
 		}

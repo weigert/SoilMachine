@@ -21,7 +21,7 @@ struct Particle {
   bool interact(Layermap& map, Vertexpool<Vertex>& vertexpool);
 
   //This is applied to multiple types of erosion, so I put it in here!
-  static void cascade(vec2 pos, Layermap& map, Vertexpool<Vertex>& vertexpool, int transferloop = 0){
+  static void cascade(vec2 pos, Layermap& map, Vertexpool<Vertex>& vertexpool, int transferloop = 0, bool dodouble = true){
 
     ivec2 ipos = round(pos);
 
@@ -65,7 +65,10 @@ struct Particle {
       SurfParam param = soils[type];
 
       //The Amount of Excess Difference!
-      float excess = abs(diff) - param.maxdiff;
+      float excess;
+      if(dodouble) excess = abs(diff) - 2.0*param.maxdiff;
+      else excess = abs(diff) - param.maxdiff;
+      
       if(excess <= 0)  //No Excess
         continue;
 

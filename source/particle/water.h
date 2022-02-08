@@ -107,7 +107,7 @@ struct WaterParticle : public Particle {
 
       sediment += param.equrate*cdiff;
       contains = soils[map.surface(ipos)].transports;
-      if(volume > 1) volume = 1;
+  //    if(volume > 1) volume = 1;
       double diff = map.remove(ipos, param.equrate*cdiff*volume);
       while(abs(diff) > 1E-8){
         diff = map.remove(ipos, diff);
@@ -162,11 +162,11 @@ struct WaterParticle : public Particle {
 
 
 
-  static void cascade(vec2 pos, Layermap& map, Vertexpool<Vertex>& vertexpool, int transferloop = 0){
+  static void cascade(vec2 pos, Layermap& map, Vertexpool<Vertex>& vertexpool, int spill = 0){
 
     ivec2 ipos = pos;
 
-    vector<ivec2> n = {
+    const vector<ivec2> n = {
       ivec2(-1, -1),
       ivec2(-1,  0),
       ivec2(-1,  1),
@@ -187,7 +187,7 @@ struct WaterParticle : public Particle {
 
     // Sort by Steepness
     sort(sn.begin(), sn.end(), [&](const ivec2& a, const ivec2& b){
-      return map.height(a) < map.height(b);
+      return map.height(a) > map.height(b);
     });
 
     for(auto& npos: sn){
@@ -227,13 +227,15 @@ struct WaterParticle : public Particle {
       sec* top = (diff > 0)?secA:secB;
       sec* bot = (diff > 0)?secB:secA;
 
-
-      //Maximum Transferrable Amount of Water (Height Difference)
-      double transfer = abs(diff) / 2.0;
+      ivec2 tpos = (diff > 0) ? ipos : npos;
+      ivec2 bpos = (diff > 0) ? npos : ipos;
 
       // We are currently only cascading air
       if(top->type != soilmap["Air"])
         continue;
+
+      //Maximum Transferrable Amount of Water (Height Difference)
+      double transfer = abs(diff) / 2.0;
 
       //Actual Amount of Water Available
       double wh = top->size;
@@ -246,93 +248,39 @@ struct WaterParticle : public Particle {
 
       bool recascade = false;
 
-
-
       if(transfer == wh){
 
+        double diff = map.remove(tpos, transfer);
+        map.update(tpos, vertexpool);
 
+        WaterParticle particle(map);
+        particle.speed = sqrt(2.0f)*normalize(glm::vec2(bpos)-glm::vec2(tpos));
 
-        if(diff > 0) {
+        particle.pos = tpos;
+        particle.spill = spill;
+        particle.volume = transfer / WaterParticle::volumeFactor;
 
-          double diff = map.remove(ipos, transfer);
-          map.update(ipos, vertexpool);
-
-
-
-          WaterParticle particle(map);
-          particle.speed = sqrt(2.0f)*normalize(glm::vec2(npos)-glm::vec2(ipos));
-          particle.pos = ipos;
-          particle.spill = transferloop;
-          particle.volume = transfer / WaterParticle::volumeFactor;
-
-          while(true){
-            while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
-            if(!particle.flood(map, vertexpool))
-              break;
-          }
-
+        while(true){
+          while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
+          if(!particle.flood(map, vertexpool))
+            break;
         }
-
-        else {
-
-          double diff = map.remove(npos, transfer);
-          map.update(npos, vertexpool);
-
-
-
-          WaterParticle particle(map);
-          particle.speed = sqrt(2.0f)*normalize(glm::vec2(ipos)-glm::vec2(npos));
-          particle.pos = npos;
-          particle.spill = transferloop;
-          particle.volume = transfer / WaterParticle::volumeFactor;
-
-          while(true){
-            while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
-            if(!particle.flood(map, vertexpool))
-              break;
-          }
-
-
-
-        }
-
-
 
       }
-
-
 
       else {
 
-        //Cap by Maximum Transferrable Amount
-        if(diff > 0){
-
-          double diff = map.remove(ipos, transfer);
-          if(diff != 0) recascade = true;
-          if(transfer > 0) recascade = true;
-          map.add(npos, map.pool.get(transfer, soilmap["Air"]));
-          map.top(npos)->saturation = 1.0f;
-          map.update(npos, vertexpool);
-          map.update(ipos, vertexpool);
-
-        }
-
-        else {
-
-          double diff = map.remove(npos, transfer);
-          if(diff != 0) recascade = true;
-          if(transfer > 0) recascade = true;
-          map.add(ipos, map.pool.get(transfer, soilmap["Air"]));
-          map.top(ipos)->saturation = 1.0f;
-          map.update(npos, vertexpool);
-          map.update(ipos, vertexpool);
-
-        }
+        if(map.remove(tpos, transfer) != 0)
+          recascade = true;
+        if(transfer > 0) recascade = true;
+        map.add(bpos, map.pool.get(transfer, soilmap["Air"]));
+        map.update(tpos, vertexpool);
+        map.update(bpos, vertexpool);
 
       }
 
-      if(recascade && transferloop > 0)
-        WaterParticle::cascade(npos, map, vertexpool, --transferloop);
+      if(recascade && spill > 0)
+        WaterParticle::cascade(npos, map, vertexpool, --spill);
 
     }
 
@@ -406,7 +354,7 @@ struct WaterParticle : public Particle {
 
 };
 
-double WaterParticle::volumeFactor = 0.001;
+double WaterParticle::volumeFactor = 0.005;
 
 float* WaterParticle::frequency = new float[SIZEX*SIZEY]{0.0f};
 float* WaterParticle::track = new float[SIZEX*SIZEY]{0.0f};

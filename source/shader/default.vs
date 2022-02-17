@@ -21,8 +21,8 @@ uniform bool wateroverlay;
 uniform vec3 watercolor;
 
 out vec3 ex_FragPos;
-out vec3 ex_Normal;
-out vec4 ex_Color;
+flat out vec3 ex_Normal;
+flat out vec4 ex_Color;
 out vec4 ex_Shadow;
 
 float gridSample(int size){
@@ -58,7 +58,7 @@ vec4 gouraud(){
 
 	float diffuse = clamp(dot(in_Normal, normalize(lightpos)), 0.2, 0.8);
 	float ambient = 0.3;
-	float spec = 0.7*pow(max(dot(normalize(lookdir), normalize(reflect(lightpos, in_Normal))), 0.0), 32.0);
+	float spec = 0.7*pow(max(dot(normalize(lookdir), normalize(reflect(lightpos, in_Normal))), 0.0), 8.0);
 
 	return vec4(lightcolor*lightstrength*((1.0f-0.8*shade())*(diffuse + spec) + ambient ), 1.0f);
 

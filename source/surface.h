@@ -15,6 +15,7 @@ struct SurfParam {
   float density;
   float porosity = 0.0f;
   vec4 color = vec4(0.5, 0.5, 0.5, 1.0);
+  vec4 phong = vec4(0.5, 0.8, 0.2, 32);
 
   //Hydrologyical Parameters
   SurfType transports = 0;    //Surface Type it Transports As
@@ -41,6 +42,7 @@ vector<SurfParam> soils = {
 
     { "Air", 0.0f, 1.0f,
       vec4(0.0, 0.2, 0.4, 1.0),
+      vec4(0.5, 0.8, 0.2, 32),
       0, 0.0f, 0.0f, 0.0f,
       0, 0.0f,
       0, 0.0f, 0.0f,
@@ -100,3 +102,4 @@ struct SurfLayer {
 
 FastNoiseLite SurfLayer::noise;
 vector<SurfLayer> layers;
+vector<vec4> phong;

@@ -3,6 +3,11 @@
 layout(location = 0) in vec3 in_Position;
 layout(location = 1) in vec3 in_Normal;
 layout(location = 2) in vec4 in_Color;
+layout(location = 3) in float in_Index;
+
+layout (std430, binding = 0) buffer k {
+  vec4 phong[];
+};
 
 uniform mat4 model;
 uniform mat4 vp;
@@ -23,6 +28,7 @@ uniform vec3 watercolor;
 out vec3 ex_FragPos;
 flat out vec3 ex_Normal;
 flat out vec4 ex_Color;
+flat out vec4 K;
 out vec4 ex_Shadow;
 
 float gridSample(int size){
@@ -70,6 +76,7 @@ void main(void) {
 	ex_Shadow = dbvp* vec4(ex_FragPos, 1.0f);
   ex_Normal = in_Normal;	//Pass Normal
   ex_Color = in_Color;
+  K = phong[int(in_Index)];
 
   if(wateroverlay){
     vec2 texturepos = in_Position.xz/textureSize(watermap, 0);

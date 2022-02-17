@@ -201,9 +201,13 @@ int main( int argc, char* args[] ) {
 	};
 
   //Visualization Shader
-  Shader shader({"source/shader/default.vs", "source/shader/default.fs"}, {"in_Position", "in_Normal", "in_Color"});
+  Shader shader({"source/shader/default.vs", "source/shader/default.fs"}, {"in_Position", "in_Normal", "in_Color", "in_Index"}, {"k"});
 	Shader depth({"source/shader/depth.vs", "source/shader/depth.fs"}, {"in_Position"});
 	Shader effect({"source/shader/effect.vs", "source/shader/effect.fs"}, {"in_Quad", "in_Tex"});
+
+	// Lighting Parameters for Soil Types
+	Buffer phongbuf(phong);
+	shader.bind<vec4>("k", &phongbuf);
 
 	Billboard image(WIDTH, HEIGHT); 			//1200x1000
 	Billboard shadow(4000, 4000, false); 	//800x800, depth only

@@ -462,7 +462,8 @@ void Layermap::update(ivec2 p, Vertexpool<Vertex>& vertexpool){
     vertexpool.fill(section, p.x*dim.y+p.y,
       vec3(p.x, 0, p.y),
       vec3(0,1,0),
-      soils[soilmap["Air"]].color
+      soils[soilmap["Air"]].color,
+      soilmap["Air"]
     );
   }
 
@@ -473,7 +474,8 @@ void Layermap::update(ivec2 p, Vertexpool<Vertex>& vertexpool){
       vec3(p.x, SLICE, p.y),
       vec3(0,1,0),
   //    normal(p),
-      mix(soils[soilmap["Air"]].color, soils[top->type].color, 0.6)
+      mix(soils[soilmap["Air"]].color, soils[top->type].color, 0.6),
+      soilmap["Air"]
     );
 
     else
@@ -481,7 +483,8 @@ void Layermap::update(ivec2 p, Vertexpool<Vertex>& vertexpool){
       vec3(p.x, SLICE, p.y),
       vec3(0,1,0),
 //    normal(p),
-      soils[top->type].color
+      soils[top->type].color,
+      top->type
     );
 
   }
@@ -500,7 +503,8 @@ void Layermap::update(ivec2 p, Vertexpool<Vertex>& vertexpool){
     vertexpool.fill(section, p.x*dim.y+p.y,
       vec3(p.x, SCALE*(top->floor + top->size), p.y),
       normal(p),
-      soils[top->type].color
+      soils[top->type].color,
+      top->type
     );
 
   }
@@ -546,7 +550,8 @@ void Layermap::slice(Vertexpool<Vertex>& vertexpool, double s = SCALE){
       vertexpool.fill(section, p.x*dim.y+p.y,
         vec3(p.x, 0, p.y),
         vec3(0,1,0),
-        soils[soilmap["Air"]].color
+        soils[soilmap["Air"]].color,
+        soilmap["Air"]
       );
     }
 
@@ -555,13 +560,15 @@ void Layermap::slice(Vertexpool<Vertex>& vertexpool, double s = SCALE){
       vertexpool.fill(section, p.x*dim.y+p.y,
         vec3(p.x, s, p.y),
         vec3(0,1,0),
-        mix(vec4(1,0,0,1), soils[top->type].color, 0.6)
+        mix(vec4(1,0,0,1), soils[top->type].color, 0.6),
+        top->type
       );
       else
       vertexpool.fill(section, p.x*dim.y+p.y,
         vec3(p.x, s, p.y),
         vec3(0,1,0),
-        soils[top->type].color
+        soils[top->type].color,
+        top->type
       );
     }
 
@@ -570,13 +577,15 @@ void Layermap::slice(Vertexpool<Vertex>& vertexpool, double s = SCALE){
       vertexpool.fill(section, p.x*dim.y+p.y,
         vec3(p.x, SCALE*(top->floor + top->size), p.y),
         normal(p),
-        vec4(1,0,0,1)
+        vec4(1,0,0,1),
+        top->type
       );
       else
       vertexpool.fill(section, p.x*dim.y+p.y,
         vec3(p.x, SCALE*(top->floor + top->size), p.y),
         normal(p),
-        soils[top->type].color
+        soils[top->type].color,
+        top->type
       );
     }
 

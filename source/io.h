@@ -177,6 +177,11 @@ void loadsoil( string file = "soil/default.soil" ){
       if(tag == "ABRASION")
         param.abrasion = stof(val);
 
+      if(tag == "Ka") param.phong.x = stof(val);
+      if(tag == "Kd") param.phong.y = stof(val);
+      if(tag == "Ks") param.phong.z = stof(val);
+      if(tag == "Kk") param.phong.w = stof(val);
+
     }
 
 
@@ -217,6 +222,10 @@ void loadsoil( string file = "soil/default.soil" ){
   }
 
   in.close();
+
+  // Set the Phong Lighting
+  for(size_t i = 0; i < soils.size(); i++)
+    phong.push_back(soils[i].phong);
 
 }
 

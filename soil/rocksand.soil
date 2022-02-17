@@ -87,6 +87,11 @@ SETTLING 0.05
 SUSPENSION 0.01
 ABRASION 0.0
 
+Ka 0.5
+Kd 0.8
+Ks 0.5
+Kk 8.0
+
 }
 
 LAYER Red Sand {

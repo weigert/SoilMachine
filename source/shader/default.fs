@@ -3,6 +3,8 @@
 in vec3 ex_FragPos;
 flat in vec3 ex_Normal;
 flat in vec4 ex_Color;
+flat in uint ex_Index;
+flat in vec4 K;
 in vec4 ex_Shadow;
 
 uniform sampler2D shadowmap;
@@ -11,6 +13,7 @@ uniform float lightstrength;
 uniform vec3 lightcolor;
 uniform vec3 lightpos;
 uniform vec3 lookdir;
+
 
 out vec4 fragColor;
 
@@ -44,11 +47,11 @@ float shade(){
 
 vec4 phong() {
 
-float diffuse = clamp(dot(ex_Normal, normalize(lightpos)), 0.2, 0.8);
-float ambient = 0.3;
-float spec = 0.2*pow(max(dot(normalize(lookdir), normalize(reflect(lightpos, ex_Normal))), 0.0), 32.0);
+  float ambient = K.x;
+  float diffuse = K.y*clamp(dot(ex_Normal, normalize(lightpos)), 0.0, 1.0);
+  float spec = K.z*pow(max(dot(normalize(lookdir), normalize(reflect(lightpos, ex_Normal))), 0.0), K.w);
 
-return vec4(lightcolor*lightstrength*((1.0f-0.8*shade())*(diffuse + spec) + ambient ), 1.0f);
+  return vec4(lightcolor*lightstrength*((1.0f-0.8*shade())*(diffuse + spec) + ambient ), 1.0f);
 
 }
 

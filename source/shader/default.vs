@@ -74,6 +74,7 @@ void main(void) {
   if(wateroverlay){
     vec2 texturepos = in_Position.xz/textureSize(watermap, 0);
     float w = length(texture(watermap, texturepos).rgb);
+  //  if(w > 0.7)
     ex_Color = mix(ex_Color, vec4(watercolor, 1.0), w);
   }
 

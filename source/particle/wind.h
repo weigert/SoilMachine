@@ -21,6 +21,10 @@ struct WindParticle : public Particle {
 
   }
 
+  static void init(){
+    frequency = new float[SIZEX*SIZEY]{0.0f};
+  }
+
   //Core Properties
   const vec3 pspeed = vec3(-2,0,1);
   vec3 speed = pspeed;
@@ -133,4 +137,4 @@ struct WindParticle : public Particle {
 
 };
 
-float* WindParticle::frequency =  new float[SIZEX*SIZEY]{0.0f};
+float* WindParticle::frequency = NULL;

@@ -40,7 +40,7 @@ struct SurfParam {
 vector<SurfParam> soils = {
 
     { "Air", 0.0f, 1.0f,
-      vec4(0.27, 0.57, 0.6, 1.0),
+      vec4(0.0, 0.2, 0.4, 1.0),
       0, 0.0f, 0.0f, 0.0f,
       0, 0.0f,
       0, 0.0f, 0.0f,

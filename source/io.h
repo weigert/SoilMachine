@@ -108,6 +108,17 @@ void loadsoil( string file = "soil/default.soil" ){
 
     }
 
+    if(tag == "WORLD"){
+
+      found = val.find('{');
+      if(found == string::npos)    //Missing Opening Bracket
+        syntaxerr();
+
+      soillayer = tag;
+      open = true;
+      continue;
+
+    }
 
     if(soillayer == "SOIL"){
 
@@ -187,6 +198,20 @@ void loadsoil( string file = "soil/default.soil" ){
       if(tag == "FREQUENCY")
         layers.back().frequency = stof(val);
 
+    }
+
+    if(soillayer == "WORLD"){
+
+      if(tag == "SIZEX")
+        SIZEX = stoi(val);
+      if(tag == "SIZEY")
+        SIZEY = stoi(val);
+      if(tag == "SCALE")
+        SCALE = stoi(val);
+      if(tag == "NWIND")
+        NWIND = stoi(val);
+      if(tag == "NWATER")
+        NWATER = stoi(val);
     }
 
   }

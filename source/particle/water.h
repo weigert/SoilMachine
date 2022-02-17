@@ -18,6 +18,11 @@ struct WaterParticle : public Particle {
 
   }
 
+  static void init(){
+    frequency = new float[SIZEX*SIZEY]{0.0f};
+    track = new float[SIZEX*SIZEY]{0.0f};
+  }
+
   //Core Properties
   double volume = 1.0;   //This will vary in time
   double sediment = 0.0; //Fraction of Volume that is Sediment!
@@ -49,8 +54,10 @@ struct WaterParticle : public Particle {
   }
 
   static void mapfrequency(Layermap& map){
-    const float lrate = 0.05f;
-    const float K = 15.0f;
+    const float lrate = 0.01f;
+    const float K = 50.0f;
+//    const float lrate = 0.05f;
+//    const float K = 15.0f;
     for(int i = 0; i < map.dim.x*map.dim.y; i++)
       frequency[i] = (1.0f-lrate)*frequency[i] + lrate*K*track[i]/(1.0f + K*track[i]);;
   }
@@ -61,7 +68,7 @@ struct WaterParticle : public Particle {
     n = map.normal(ipos);             //Surface Normal Vector
     surface = map.surface(ipos);      //Surface Composition
     param = soils[surface];           //Surface Composition
-    evaprate = 0.001;                 //Reset Evaprate
+    evaprate = 0.01;                 //Reset Evaprate
     updatefrequency(map, ipos);
 
     //Modify Parameters Based on Frequency
@@ -357,5 +364,5 @@ struct WaterParticle : public Particle {
 
 double WaterParticle::volumeFactor = 0.005;
 
-float* WaterParticle::frequency = new float[SIZEX*SIZEY]{0.0f};
-float* WaterParticle::track = new float[SIZEX*SIZEY]{0.0f};
+float* WaterParticle::frequency = NULL;//new float[SIZEX*SIZEY]{0.0f};
+float* WaterParticle::track = NULL;//new float[SIZEX*SIZEY]{0.0f};

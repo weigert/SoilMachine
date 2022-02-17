@@ -6,10 +6,12 @@
 #define WIDTH 1200
 #define HEIGHT 1000
 
-size_t SIZEX = 256;
-size_t SIZEY = 256;
+int SIZEX = 256;
+int SIZEY = 256;
 int SCALE = 80;
-int SLICE = 80;
+int SLICE = 2*SCALE;
+int NWIND = 250;
+int NWATER = 250;
 
 #define POOLSIZE 10000000
 int SEED;
@@ -40,6 +42,9 @@ int main( int argc, char* args[] ) {
 		loadsoil(parse::option["soil"]);
 	else loadsoil();
 
+	WaterParticle::init();
+	WindParticle::init();
+
 	//Initialize a Window
 	Tiny::view.vsync = false;
 	Tiny::window("Soil Machine", WIDTH, HEIGHT);
@@ -55,8 +60,6 @@ int main( int argc, char* args[] ) {
 
 	bool dowindcycles = true;
 	bool dowatercycles = true;
-	int nwindcycles = 500;
-	int nwatercycles = 1000;
 	bool paused = true;
 
 	glDisable(GL_CULL_FACE);
@@ -119,7 +122,7 @@ int main( int argc, char* args[] ) {
 
 				if(ImGui::TreeNode("Hydraulic Erosion")){
 					ImGui::Checkbox("Do Water Cycles?", &dowatercycles);
-					ImGui::DragInt("Particles per Frame", &nwatercycles, 1, 0, 2000);
+					ImGui::DragInt("Particles per Frame", &NWATER, 1, 0, 2000);
 					ImGui::Checkbox("Overlay Map?", &scene::wateroverlay);
 					ImGui::Text("Frequency Texture: ");
 					ImGui::Image((void*)(intptr_t)watertexture.texture, ImVec2(SIZEX, SIZEY));
@@ -128,7 +131,7 @@ int main( int argc, char* args[] ) {
 
 				if(ImGui::TreeNode("WindErosion")){
 					ImGui::Checkbox("Do Wind Cycles?", &dowindcycles);
-					ImGui::DragInt("Particles per Frame", &nwindcycles, 1, 0, 2000);
+					ImGui::DragInt("Particles per Frame", &NWIND, 1, 0, 2000);
 					ImGui::Text("Frequency Texture: ");
 					ImGui::Image((void*)(intptr_t)windtexture.texture, ImVec2(SIZEX, SIZEY));
 					ImGui::TreePop();
@@ -248,7 +251,7 @@ int main( int argc, char* args[] ) {
 		if(paused) return;
 
 		if(dowatercycles)
-		for(int i = 0; i < nwatercycles; i++){
+		for(int i = 0; i < NWATER; i++){
 
 			WaterParticle particle(map);
 
@@ -262,13 +265,8 @@ int main( int argc, char* args[] ) {
 
 		WaterParticle::seep(map, vertexpool);
 
-
-
-
-
-
 		if(dowindcycles)
-		for(int i = 0; i < nwindcycles; i++){
+		for(int i = 0; i < NWIND; i++){
 			WindParticle particle(map);
 			while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
 		}

@@ -1,5 +1,21 @@
 # SoilMachine Soil File
 
+#============
+#   World
+#============
+
+WORLD {
+
+#SEED 0
+
+SCALE 80
+SIZEX 256
+SIZEY 256
+
+NWATER 50
+NWIND 250
+
+}
 
 #==============
 #   RED SAND

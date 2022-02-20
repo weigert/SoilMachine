@@ -16,8 +16,6 @@
 - Run without graphical interface (just import / export)
 
 ## Visualization
-- Add phong lighting options to soil types for better appearance
-- Overlay particle density maps for visuals
 - Triangle Split Vertex Pool
 - Extensible Vertex Pool for Triangles (i.e.: Multilayer)
 

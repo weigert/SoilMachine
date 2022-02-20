@@ -18,6 +18,8 @@ Air e.g. has porosity 1
 
 */
 
+#define SOILMACHINE_MASK
+
 #include "include/FastNoiseLite.h"
 
 #include <glm/glm.hpp>
@@ -192,6 +194,24 @@ void initialize(int SEED, ivec2 _dim){
     }}
 
   }
+
+  // Mask the World
+
+  #ifdef SOILMACHINE_MASK
+
+  layers[0].scale = 1.0f;
+  layers[0].bias = 0.5f;
+
+  for(int i = 0; i < dim.x; i++)
+  for(int j = 0; j < dim.y; j++){
+
+    double maxh = layers[0].get(vec3(i, j, SEED%MAXSEED)/vec3(dim.x, dim.y, MAXSEED));
+    float diff = remove(ivec2(i, j), height(ivec2(i, j)) - maxh);
+    while(diff > 0) diff = remove(ivec2(i, j), height(ivec2(i, j)) - maxh);
+
+  }
+
+  #endif
 
 }
 

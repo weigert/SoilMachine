@@ -3,8 +3,8 @@
 #include <TinyEngine/parse>
 #include <TinyEngine/image>
 
-#define WIDTH 1200
-#define HEIGHT 1000
+#define WIDTH 800
+#define HEIGHT 800
 
 int SIZEX = 256;
 int SIZEY = 256;

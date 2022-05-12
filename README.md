@@ -4,7 +4,7 @@ Advanced, modular, coupled geomorpohology simulator for real-time procedural ter
 
 Visualization with [TinyEngine](https://github.com/weigert/TinyEngine).
 
-Article: **Coming Soon(ish)**
+Article: [An Efficient Data Structure for 3D Multi-Layer Terrain and Erosion Simulation](https://nickmcd.me/2022/04/15/soilmachine/)
 
 ## Description
 

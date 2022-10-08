@@ -18,7 +18,7 @@ Air e.g. has porosity 1
 
 */
 
-#define SOILMACHINE_MASK
+//#define SOILMACHINE_MASK
 
 #include "include/FastNoiseLite.h"
 

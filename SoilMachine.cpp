@@ -3,8 +3,8 @@
 #include <TinyEngine/parse>
 #include <TinyEngine/image>
 
-#define WIDTH 800
-#define HEIGHT 800
+#define WIDTH 1200
+#define HEIGHT 1000
 
 int SIZEX = 256;
 int SIZEY = 256;
@@ -24,6 +24,8 @@ int SEED;
 #include "source/particle/wind.h"
 
 #include "source/io.h"
+
+#include "source/include/lbmwind/lbmwind.h"
 
 int main( int argc, char* args[] ) {
 
@@ -47,6 +49,9 @@ int main( int argc, char* args[] ) {
 
 	//Initialize a Window
 	Tiny::view.vsync = false;
+	Tiny::view.lineWidth = 2.0f;
+	Tiny::view.antialias = 0;
+
 	Tiny::window("Soil Machine", WIDTH, HEIGHT);
   cam::near = -800.0f;
 	cam::far = 800.0f;
@@ -54,7 +59,7 @@ int main( int argc, char* args[] ) {
   cam::look = glm::vec3(SIZEX/2, SCALE/2, SIZEY/2);
 	cam::init(3, cam::ORTHO);
 
-	cam::rot = 45.0f;
+	cam::rot = -45.0f;
 	cam::roty = 45.0f;
 	cam::update();
 
@@ -185,6 +190,14 @@ int main( int argc, char* args[] ) {
 				ImGui::EndTabItem();
 			}
 
+			if(ImGui::BeginTabItem("Wind")){
+
+				ImGui::Checkbox("Update Wind", &lbmw::updatewind);
+				ImGui::Checkbox("Render Wind", &lbmw::renderwind);
+
+				ImGui::EndTabItem();
+			}
+
 			if(ImGui::BeginTabItem("Visualization")){
 
 				ImGui::Checkbox("Distance Fog", &scene::distancefog);
@@ -213,6 +226,14 @@ int main( int argc, char* args[] ) {
 	Billboard shadow(4000, 4000, false); 	//800x800, depth only
 	Square2D flat;												//For Billboard Rendering
 
+	lbmw::initialize();
+	for(size_t x = 0 ; x < lbmw::NX; x++)
+	for(size_t y = 0 ; y < lbmw::NY; y++)
+	for(size_t z = 0 ; z < lbmw::NZ; z++)
+		lbmw::boundary[(x*lbmw::NY + y)*lbmw::NZ + z] = map.height(ivec2(lbmw::scale.x*x, lbmw::scale.z*z)) > (lbmw::scale.y*y)/(float)SCALE;
+	lbmw::b->fill(lbmw::NX*lbmw::NY*lbmw::NZ, lbmw::boundary);
+
+
 	//Define the rendering pipeline
 	Tiny::view.pipeline = [&](){
 
@@ -238,6 +259,9 @@ int main( int argc, char* args[] ) {
 		shader.texture("watermap", watertexture);
 		vertexpool.render(GL_TRIANGLES);
 
+		if(lbmw::renderwind)
+			lbmw::render(cam::vp);
+
 		//Render Image with Effects
 		Tiny::view.target(scene::skycolor);	//Clear Screen to white
 		effect.use();
@@ -246,6 +270,7 @@ int main( int argc, char* args[] ) {
 		effect.texture("imageTexture", image.texture);
 		effect.texture("depthTexture", image.depth);
 		flat.render();
+
 
 	};
 
@@ -267,6 +292,7 @@ int main( int argc, char* args[] ) {
 
 		}
 
+		if(dowatercycles)
 		WaterParticle::seep(map, vertexpool);
 
 		if(dowindcycles)
@@ -275,18 +301,25 @@ int main( int argc, char* args[] ) {
 			while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
 		}
 
-		//Update Raw Textures
-		WaterParticle::mapfrequency(map);
-		watertexture.raw(image::make([&](int i){
-			float wf = WaterParticle::frequency[i];
-			return vec4(wf, wf, wf, 1);
-		}, vec2(SIZEX, SIZEY)));
-		WaterParticle::resetfrequency(map);
+		if(lbmw::updatewind)
+			lbmw::update();
 
-		windtexture.raw(image::make([&](int i){
-			float wf = WindParticle::frequency[i];
-			return vec4(wf, wf, wf, 1);
-		}, vec2(SIZEX, SIZEY)));
+		//Update Raw Textures
+		if(dowatercycles){
+			WaterParticle::mapfrequency(map);
+			watertexture.raw(image::make([&](int i){
+				float wf = WaterParticle::frequency[i];
+				return vec4(wf, wf, wf, 1);
+			}, vec2(SIZEX, SIZEY)));
+			WaterParticle::resetfrequency(map);
+		}
+
+		if(dowindcycles){
+			windtexture.raw(image::make([&](int i){
+				float wf = WindParticle::frequency[i];
+				return vec4(wf, wf, wf, 1);
+			}, vec2(SIZEX, SIZEY)));
+		}
 
 	});
 
@@ -296,6 +329,7 @@ int main( int argc, char* args[] ) {
 	if(parse::option.contains("oh"))
 		exportheight(map, vertexpool, parse::option["oh"]);
 
+	lbmw::quit();
 	Tiny::quit();
 
 	return 0;

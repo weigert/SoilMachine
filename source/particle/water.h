@@ -40,28 +40,6 @@ struct WaterParticle : public Particle {
   SurfType surface;
   SurfType contains;
 
-  static float* frequency;
-  static float* track;
-
-  void updatefrequency(Layermap& map, ivec2 ipos){
-    int ind = ipos.y*map.dim.x+ipos.x;
-    track[ind] += volume;
-  }
-
-  static void resetfrequency(Layermap& map){
-    for(int i = 0; i < map.dim.x*map.dim.y; i++)
-      track[i] = 0.0f;
-  }
-
-  static void mapfrequency(Layermap& map){
-    const float lrate = 0.01f;
-    const float K = 50.0f;
-//    const float lrate = 0.05f;
-//    const float K = 15.0f;
-    for(int i = 0; i < map.dim.x*map.dim.y; i++)
-      frequency[i] = (1.0f-lrate)*frequency[i] + lrate*K*track[i]/(1.0f + K*track[i]);;
-  }
-
   bool move(Layermap& map, Vertexpool<Vertex>& vertexpool){
 
     ipos = round(pos);                //Position
@@ -149,12 +127,13 @@ struct WaterParticle : public Particle {
 
     ipos = pos;
 
-    // Add Water
 
     // Add Remaining Soil
 
     map.add(ipos, map.pool.get(sediment*soils[contains].equrate, contains));
     Particle::cascade(pos, map, vertexpool, 0);
+
+    // Add Water
 
     map.add(ipos, map.pool.get(volume*volumeFactor, soilmap["Air"]));
     seep(ipos, map, vertexpool);
@@ -318,13 +297,7 @@ struct WaterParticle : public Particle {
       //Empty Volume Bottom Layer
       double nevol = prev->size*(1.0 - prev->saturation)*nparam.porosity;
 
-      double seepage = 1.0;//0.1f;
-
-      // Compute Pressure
-      //pressure *= (1.0f - param.porosity);  //Pressure Drop
-      //pressure += vol;                      //Increase
-      //Seepage Rate (Top-To-Bottom)
-    //	double seepage = 1.0f / (1.0f + pressure * );
+      double seepage = 1.0;
 
       //Transferred Volume is the Smaller Amount!
       double transfer = (vol < nevol) ? vol : nevol;
@@ -360,9 +333,32 @@ struct WaterParticle : public Particle {
 
   }
 
+  static float* frequency;
+  static float* track;
+
+  void updatefrequency(Layermap& map, ivec2 ipos){
+    int ind = ipos.y*map.dim.x+ipos.x;
+    track[ind] += volume;
+  }
+
+  static void resetfrequency(Layermap& map){
+    for(int i = 0; i < map.dim.x*map.dim.y; i++)
+      track[i] = 0.0f;
+  }
+
+  static void mapfrequency(Layermap& map){
+    const float lrate = 0.01f;
+    const float K = 50.0f;
+//    const float lrate = 0.05f;
+//    const float K = 15.0f;
+    for(int i = 0; i < map.dim.x*map.dim.y; i++)
+      frequency[i] = (1.0f-lrate)*frequency[i] + lrate*K*track[i]/(1.0f + K*track[i]);;
+  }
+
+
 };
 
-double WaterParticle::volumeFactor = 0.005;
+double WaterParticle::volumeFactor = 0.015;
 
 float* WaterParticle::frequency = NULL;//new float[SIZEX*SIZEY]{0.0f};
 float* WaterParticle::track = NULL;//new float[SIZEX*SIZEY]{0.0f};

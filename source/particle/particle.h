@@ -27,7 +27,7 @@ struct Particle {
 
     // All Possible Neighbors
 
-    const vector<ivec2> n = {
+    static const ivec2 n[] = {
       ivec2(-1, -1),
       ivec2(-1,  0),
       ivec2(-1,  1),
@@ -40,21 +40,27 @@ struct Particle {
 
     //No Out-Of-Bounds
 
-    vector<ivec2> sn;
+    struct Point {
+      ivec2 pos;
+      double h;
+    };
+    Point sn[8];
+    int num = 0;
     for(auto& nn: n){
       ivec2 npos = ipos + nn;
       if(npos.x >= map.dim.x || npos.y >= map.dim.y
          || npos.x < 0 || npos.y < 0) continue;
-      sn.push_back(npos);
+      sn[num++] = { npos, map.height(npos) };
     }
 
     // Sort by Highest First (Soil is Moved Down After All)
 
-    sort(sn.begin(), sn.end(), [&](const ivec2& a, const ivec2& b){
-      return map.height(a) > map.height(b);
+    sort(std::begin(sn), std::begin(sn) + num, [&](const Point& a, const Point& b){
+      return a.h > b.h;
     });
 
-    for(auto& npos: sn){
+    for (int i = 0; i < num; ++i) {
+      auto& npos = sn[i].pos;
 
       //Full Height-Different Between Positions!
       float diff = (map.height(ipos) - map.height(npos))*(float)SCALE/80.0f;

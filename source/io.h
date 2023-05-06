@@ -233,20 +233,20 @@ void loadsoil( string file = "soil/default.soil" ){
 
 void exportcolor(Layermap& map, Vertexpool<Vertex>& vertexpool, string filename = "color.png"){
   cout<<"Exporting Color Image"<<endl;
-  SDL_Surface* img = image::make([&](int i){
-    Vertex* v = vertexpool.get(map.section, i);
+  SDL_Surface* img = image::make([&](ivec2 i){
+    Vertex* v = vertexpool.get(map.section, i.x*SIZEY+i.y);
     vec4 color = vec4(v->color[2], v->color[1], v->color[0], 1);
     return color;
-  }, vec2(SIZEX, SIZEY));
+  }, ivec2(SIZEX, SIZEY));
   image::save(img, filename);
 }
 
 //Export Functions
 void exportheight(Layermap& map, Vertexpool<Vertex>& vertexpool, string filename = "height.png"){
   cout<<"Exporting Height Image"<<endl;
-  SDL_Surface* img = image::make([&](int i){
-    Vertex* v = vertexpool.get(map.section, i);
+  SDL_Surface* img = image::make([&](ivec2 i){
+    Vertex* v = vertexpool.get(map.section, i.x*SIZEY+i.y);
     return vec4(v->position[1]/SCALE/sqrt(2), v->position[1]/SCALE/sqrt(2), v->position[1]/SCALE/sqrt(2), 1);
-  }, vec2(SIZEX, SIZEY));
+  }, ivec2(SIZEX, SIZEY));
   image::save(img, filename);
 }

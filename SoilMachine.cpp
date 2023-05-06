@@ -83,15 +83,15 @@ int main( int argc, char* args[] ) {
 	Layermap map(SEED, glm::ivec2(SIZEX, SIZEY), vertexpool);
 
 	//Particle Visualization Textures
-	Texture watertexture(image::make([&](int i){
-		float wf = WaterParticle::frequency[i];
+	Texture watertexture(image::make([&](ivec2 i){
+		float wf = WaterParticle::frequency[i.y*SIZEX+i.x];
 		return vec4(wf, wf, wf, 1);
-	}, vec2(SIZEX, SIZEY)));
+	}, ivec2(SIZEX, SIZEY)));
 
-	Texture windtexture(image::make([&](int i){
-		float wf = WindParticle::frequency[i];
+	Texture windtexture(image::make([&](ivec2 i){
+		float wf = WindParticle::frequency[i.y*SIZEX+i.x];
 		return vec4(wf, wf, wf, 1);
-	}, vec2(SIZEX, SIZEY)));
+	}, ivec2(SIZEX, SIZEY)));
 
 	Tiny::view.interface = [&](){
 
@@ -223,7 +223,12 @@ int main( int argc, char* args[] ) {
 	shader.bind<vec4>("k", &phongbuf);
 
 	Billboard image(WIDTH, HEIGHT); 			//1200x1000
-	Billboard shadow(4000, 4000, false); 	//800x800, depth only
+
+
+	Texture shadowmap(4000, 4000, {GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_FLOAT});
+  Target shadow(4000, 4000);
+  shadow.bind(shadowmap, GL_DEPTH_ATTACHMENT);
+
 	Square2D flat;												//For Billboard Rendering
 
 	lbmw::initialize();
@@ -253,7 +258,7 @@ int main( int argc, char* args[] ) {
     shader.uniform("lightstrength", scene::lightstrength);
     shader.uniform("lightpos", scene::lightpos);
     shader.uniform("lookdir", -cam::pos);
-		shader.texture("shadowmap", shadow.depth);
+		shader.texture("shadowmap", shadowmap);
 		shader.uniform("wateroverlay", scene::wateroverlay);
 		shader.uniform("watercolor", scene::watercolor);
 		shader.texture("watermap", watertexture);
@@ -307,18 +312,18 @@ int main( int argc, char* args[] ) {
 		//Update Raw Textures
 		if(dowatercycles){
 			WaterParticle::mapfrequency(map);
-			watertexture.raw(image::make([&](int i){
-				float wf = WaterParticle::frequency[i];
+			watertexture.raw(image::make([&](ivec2 i){
+				float wf = WaterParticle::frequency[i.y*SIZEX+i.x];
 				return vec4(wf, wf, wf, 1);
-			}, vec2(SIZEX, SIZEY)));
+			}, ivec2(SIZEX, SIZEY)));
 			WaterParticle::resetfrequency(map);
 		}
 
 		if(dowindcycles){
-			windtexture.raw(image::make([&](int i){
-				float wf = WindParticle::frequency[i];
+			windtexture.raw(image::make([&](ivec2 i){
+				float wf = WindParticle::frequency[i.y*SIZEX+i.x];
 				return vec4(wf, wf, wf, 1);
-			}, vec2(SIZEX, SIZEY)));
+			}, ivec2(SIZEX, SIZEY)));
 		}
 
 	});

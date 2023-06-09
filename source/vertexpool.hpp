@@ -107,6 +107,8 @@ size_t MAXSIZE = 0;
 
 vector<DAIC> indirect;  //Indirect Drawing Commands
 
+public:
+
 Vertexpool(){
   glGenVertexArrays(1, &vao); //VAO Generation
   glBindVertexArray(vao);
@@ -115,8 +117,6 @@ Vertexpool(){
   glGenBuffers(1, &indbo);
   T::format(vbo);							//Buffer Formatting
 }
-
-public:
 
 vector<GLuint> indices;
 

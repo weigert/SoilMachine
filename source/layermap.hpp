@@ -20,8 +20,6 @@ Air e.g. has porosity 1
 
 //#define SOILMACHINE_MASK
 
-#include "include/FastNoiseLite.h"
-
 #include <glm/glm.hpp>
 using namespace glm;
 using namespace std;
@@ -31,8 +29,6 @@ using namespace std;
                   RLE Linked-List Element and Memory Pool
 ================================================================================
 */
-
-#include "surface.h"
 
 struct sec {
 
@@ -118,6 +114,27 @@ void reset(){
 
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /*
 ================================================================================
                       Queriable Layermap Datastructure
@@ -140,8 +157,6 @@ double height(ivec2);                     //Query Height at Discrete Position
 double height(vec2);                      //Query Height at Position (Bilinear Interpolation)
 vec3 normal(ivec2);                       //Normal Vector at Position
 vec3 normal(vec2);                        //Normal Vector at Position (Bilinear Interpolation)
-vec3 normal(ivec2, Vertexpool<Vertex>&);  //Normal Vector at Position (Read from Vertexpool)
-vec3 normal(vec2, Vertexpool<Vertex>&);   //Normal Vector at Position (Read from Vertexpool)
 SurfType surface(ivec2);                  //Surface Type at Position
 
 //Modifiers
@@ -150,13 +165,6 @@ double remove(ivec2, double);             //Remove Layer at Position
 sec* top(ivec2 pos){                      //Top Element at Position
   return dat[pos.x*dim.y+pos.y];
 }
-
-//Meshing / Visualization
-uint* section = NULL;                     //Vertexpool Section Pointer
-void meshpool(Vertexpool<Vertex>&);       //Mesh based on Vertexpool
-void update(ivec2, Vertexpool<Vertex>&);  //Update Vertexpool at Position (No Remesh)
-void update(Vertexpool<Vertex>&);         //Update Vertexpool at Position (No Remesh)
-void slice(Vertexpool<Vertex>&, double);         //Update Vertexpool at Position (No Remesh)
 
 public:
 
@@ -219,10 +227,6 @@ void initialize(int SEED, ivec2 _dim){
 Layermap(int SEED, ivec2 _dim){
   pool.reserve(POOLSIZE);                //Some permissible amount of RAM later...
   initialize(SEED, _dim);
-}
-
-Layermap(int SEED, ivec2 _dim, Vertexpool<Vertex>& vertexpool):Layermap(SEED, _dim){
-  meshpool(vertexpool);
 }
 
 };
@@ -391,27 +395,6 @@ vec3 Layermap::normal(vec2 pos){
 
 }
 
-vec3 Layermap::normal(ivec2 pos, Vertexpool<Vertex>& vertexpool){
-  return normal(pos);
-  //Vertex* v = vertexpool.get(section, pos.x*dim.y+pos.y);
-  //return vec3(v->normal[0], v->normal[1], v->normal[2]);
-}
-
-vec3 Layermap::normal(vec2 pos, Vertexpool<Vertex>& vertexpool){
-
-  vec3 n = vec3(0);
-  ivec2 p = floor(pos);
-  vec2 w = fract(pos);
-
-  n += (1.0f-w.x)*(1.0f-w.y)*normal(p, vertexpool);
-  n += (1.0f-w.x)*w.y*normal(p+ivec2(1,0), vertexpool);
-  n += w.x*(1.0f-w.y)*normal(p+ivec2(0,1), vertexpool);
-  n += w.x*w.y*normal(p+ivec2(1,1), vertexpool);
-
-  return n;
-
-}
-
 //Queries
 
 SurfType Layermap::surface(ivec2 pos){
@@ -436,178 +419,4 @@ double Layermap::height(vec2 pos){
   h += w.x*w.y*height(p+ivec2(1,1));
   return h;
 
-}
-
-// Meshing, Updating
-
-void Layermap::meshpool(Vertexpool<Vertex>& vertexpool){
-
-  if(section != NULL){
-    vertexpool.unsection(section);
-    vertexpool.indices.clear();
-  }
-
-  section = vertexpool.section(dim.x*dim.y, 0, glm::vec3(0));
-
-  for(int i = 0; i < dim.x; i++)
-  for(int j = 0; j < dim.y; j++)
-    update(ivec2(i,j), vertexpool);
-
-  for(int i = 0; i < dim.x-1; i++){
-  for(int j = 0; j < dim.y-1; j++){
-
-    vertexpool.indices.push_back(i*dim.y+j);
-    vertexpool.indices.push_back(i*dim.y+(j+1));
-    vertexpool.indices.push_back((i+1)*dim.y+j);
-
-    vertexpool.indices.push_back((i+1)*dim.y+j);
-    vertexpool.indices.push_back(i*dim.y+(j+1));
-    vertexpool.indices.push_back((i+1)*dim.y+(j+1));
-
-  }}
-
-  vertexpool.resize(section, vertexpool.indices.size());
-  vertexpool.index();
-  vertexpool.update();
-
-}
-
-void Layermap::update(ivec2 p, Vertexpool<Vertex>& vertexpool){
-
-  sec* top = dat[p.x*dim.y+p.y];
-  while(top != NULL && top->floor > (float)SLICE/(float)SCALE)
-    top = top->prev;
-
-  if(top == NULL){
-    vertexpool.fill(section, p.x*dim.y+p.y,
-      vec3(p.x, 0, p.y),
-      vec3(0,1,0),
-      soils[soilmap["Air"]].color,
-      soilmap["Air"]
-    );
-  }
-
-  else if(top->floor + top->size > (float)SLICE/(float)SCALE){
-
-    if(top->floor + top->size*top->saturation > (float)SLICE/(float)SCALE)
-    vertexpool.fill(section, p.x*dim.y+p.y,
-      vec3(p.x, SLICE, p.y),
-      vec3(0,1,0),
-  //    normal(p),
-      mix(soils[soilmap["Air"]].color, soils[top->type].color, 0.6),
-      soilmap["Air"]
-    );
-
-    else
-    vertexpool.fill(section, p.x*dim.y+p.y,
-      vec3(p.x, SLICE, p.y),
-      vec3(0,1,0),
-//    normal(p),
-      soils[top->type].color,
-      top->type
-    );
-
-  }
-
-  else{
-
-/*
-    if(top->saturation == 1)  //Fill Watertable!
-    vertexpool.fill(section, p.x*dim.y+p.y,
-      vec3(p.x, SCALE*(top->floor + top->size), p.y),
-      normal(p),
-      soils[soilmap["Air"]].color
-    );
-*/
-//    else
-    vertexpool.fill(section, p.x*dim.y+p.y,
-      vec3(p.x, SCALE*(top->floor + top->size), p.y),
-      normal(p),
-      soils[top->type].color,
-      top->type
-    );
-
-  }
-
-  /*
-
-  if(surface(p) == soilmap["Air"])
-  vertexpool.fill(section, p.x*dim.y+p.y,
-    vec3(p.x, SCALE*height(p), p.y),
-    normal(p),
-    soils[surface(p)].color
-  );
-  else
-  vertexpool.fill(section, p.x*dim.y+p.y,
-    vec3(p.x, SCALE*height(p), p.y),
-    normal(p),
-    soils[surface(p)].color
-  );
-
-  */
-
-}
-
-void Layermap::update(Vertexpool<Vertex>& vertexpool){
-  for(int i = 0; i < dim.x; i++)
-  for(int j = 0; j < dim.y; j++)
-    update(ivec2(i,j), vertexpool);
-}
-
-void Layermap::slice(Vertexpool<Vertex>& vertexpool, double s = SCALE){
-
-  for(int i = 0; i < dim.x; i++)
-  for(int j = 0; j < dim.y; j++){
-
-    ivec2 p = ivec2(i,j);
-
-    //Find the first element which starts below the scale!
-    sec* top = dat[p.x*dim.y+p.y];
-    while(top != NULL && top->floor > s/SCALE)
-      top = top->prev;
-
-    if(top == NULL){
-      vertexpool.fill(section, p.x*dim.y+p.y,
-        vec3(p.x, 0, p.y),
-        vec3(0,1,0),
-        soils[soilmap["Air"]].color,
-        soilmap["Air"]
-      );
-    }
-
-    else if(top->floor + top->size > s/SCALE){
-      if(top->floor + top->size*top->saturation > s/SCALE)
-      vertexpool.fill(section, p.x*dim.y+p.y,
-        vec3(p.x, s, p.y),
-        vec3(0,1,0),
-        mix(vec4(1,0,0,1), soils[top->type].color, 0.6),
-        top->type
-      );
-      else
-      vertexpool.fill(section, p.x*dim.y+p.y,
-        vec3(p.x, s, p.y),
-        vec3(0,1,0),
-        soils[top->type].color,
-        top->type
-      );
-    }
-
-    else{
-      if(top->saturation == 0)  //Fill Watertable!
-      vertexpool.fill(section, p.x*dim.y+p.y,
-        vec3(p.x, SCALE*(top->floor + top->size), p.y),
-        normal(p),
-        vec4(1,0,0,1),
-        top->type
-      );
-      else
-      vertexpool.fill(section, p.x*dim.y+p.y,
-        vec3(p.x, SCALE*(top->floor + top->size), p.y),
-        normal(p),
-        soils[top->type].color,
-        top->type
-      );
-    }
-
-  }
 }

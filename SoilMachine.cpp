@@ -19,13 +19,14 @@ int SEED;
 #include "source/include/vertexpool.h"
 #include "source/include/scene.h"
 
-#include "source/layermap.h"
+#include <soillib/external/FastNoiseLite.h>
+#include "source/surface.h"
+#include <soillib/map/layermap.hpp>
+
 #include "source/particle/water.h"
 #include "source/particle/wind.h"
 
 #include "source/io.h"
-
-#include "source/include/lbmwind/lbmwind.h"
 
 int main( int argc, char* args[] ) {
 
@@ -190,14 +191,6 @@ int main( int argc, char* args[] ) {
 				ImGui::EndTabItem();
 			}
 
-			if(ImGui::BeginTabItem("Wind")){
-
-				ImGui::Checkbox("Update Wind", &lbmw::updatewind);
-				ImGui::Checkbox("Render Wind", &lbmw::renderwind);
-
-				ImGui::EndTabItem();
-			}
-
 			if(ImGui::BeginTabItem("Visualization")){
 
 				ImGui::Checkbox("Distance Fog", &scene::distancefog);
@@ -231,14 +224,6 @@ int main( int argc, char* args[] ) {
 
 	Square2D flat;												//For Billboard Rendering
 
-	lbmw::initialize();
-	for(size_t x = 0 ; x < lbmw::NX; x++)
-	for(size_t y = 0 ; y < lbmw::NY; y++)
-	for(size_t z = 0 ; z < lbmw::NZ; z++)
-		lbmw::boundary[(x*lbmw::NY + y)*lbmw::NZ + z] = map.height(ivec2(lbmw::scale.x*x, lbmw::scale.z*z)) > (lbmw::scale.y*y)/(float)SCALE;
-	lbmw::b->fill(lbmw::NX*lbmw::NY*lbmw::NZ, lbmw::boundary);
-
-
 	//Define the rendering pipeline
 	Tiny::view.pipeline = [&](){
 
@@ -263,9 +248,6 @@ int main( int argc, char* args[] ) {
 		shader.uniform("watercolor", scene::watercolor);
 		shader.texture("watermap", watertexture);
 		vertexpool.render(GL_TRIANGLES);
-
-		if(lbmw::renderwind)
-			lbmw::render(cam::vp);
 
 		//Render Image with Effects
 		Tiny::view.target(scene::skycolor);	//Clear Screen to white
@@ -306,9 +288,6 @@ int main( int argc, char* args[] ) {
 			while(particle.move(map, vertexpool) && particle.interact(map, vertexpool));
 		}
 
-		if(lbmw::updatewind)
-			lbmw::update();
-
 		//Update Raw Textures
 		if(dowatercycles){
 			WaterParticle::mapfrequency(map);
@@ -334,7 +313,6 @@ int main( int argc, char* args[] ) {
 	if(parse::option.contains("oh"))
 		exportheight(map, vertexpool, parse::option["oh"]);
 
-	lbmw::quit();
 	Tiny::quit();
 
 	return 0;

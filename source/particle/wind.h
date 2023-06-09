@@ -1,14 +1,15 @@
-/*
-================================================================================
-                      Wind Particle for Wind Erosion
-================================================================================
-*/
+#ifndef SOILMACHINE_PARTICLE_WIND
+#define SOILMACHINE_PARTICLE_WIND
 
-#include "particle.h"
+#include <soillib/particle/particle.hpp>
+#include <soillib/model/physics/cascade.hpp>
 
 using namespace glm;
 
-struct WindParticle : public Particle {
+struct WindParticle : public soil::Particle {
+
+  vec2 pos;
+  bool isalive = true;
 
   WindParticle(Layermap& map){
 
@@ -109,7 +110,7 @@ struct WindParticle : public Particle {
         double diff = map.remove(ipos, param.suspension*force);
         sediment += (param.suspension*force - diff);
 
-        Particle::cascade(ipos, map, vertexpool, 1);
+        //Particle::cascade(ipos, map, vertexpool, 1);
         map.update(ipos, vertexpool);
 
       }
@@ -123,10 +124,10 @@ struct WindParticle : public Particle {
       map.add(npos, map.pool.get(0.5f*soils[contains].suspension*sediment, contains));
       map.add(ipos, map.pool.get(0.5f*soils[contains].suspension*sediment, contains));
 
-      Particle::cascade(ipos, map, vertexpool, 1);
+      //Particle::cascade(ipos, map, vertexpool, 1);
       map.update(ipos, vertexpool);
 
-      Particle::cascade(npos, map, vertexpool, 1);
+      //Particle::cascade(npos, map, vertexpool, 1);
       map.update(npos, vertexpool);
 
     }
@@ -138,3 +139,5 @@ struct WindParticle : public Particle {
 };
 
 float* WindParticle::frequency = NULL;
+
+#endif

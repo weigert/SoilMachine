@@ -1,12 +1,16 @@
-/*
-================================================================================
-                  Water Particle for Hydraulic Erosion
-================================================================================
-*/
+#ifndef SOILMACHINE_PARTICLE_WATER
+#define SOILMACHINE_PARTICLE_WATER
 
-#include "particle.h"
+#include <soillib/particle/particle.hpp>
+#include <soillib/model/physics/cascade.hpp>
 
-struct WaterParticle : public Particle {
+struct WaterParticle : public soil::Particle {
+
+
+  vec2 pos;
+  vec2 speed = vec2(0);
+  bool isalive = true;
+
 
   WaterParticle(Layermap& map){
 
@@ -110,7 +114,7 @@ struct WaterParticle : public Particle {
     }
 
     //Particle Cascade: Thermal Erosion!
-    Particle::cascade(pos, map, vertexpool, 0);
+    //Particle::cascade(pos, map, vertexpool, 0);
 
     //Update Map, Particle
     sediment /= (1.0-evaprate);
@@ -131,7 +135,7 @@ struct WaterParticle : public Particle {
     // Add Remaining Soil
 
     map.add(ipos, map.pool.get(sediment*soils[contains].equrate, contains));
-    Particle::cascade(pos, map, vertexpool, 0);
+    //Particle::cascade(pos, map, vertexpool, 0);
 
     // Add Water
 
@@ -371,3 +375,5 @@ double WaterParticle::volumeFactor = 0.015;
 
 float* WaterParticle::frequency = NULL;//new float[SIZEX*SIZEY]{0.0f};
 float* WaterParticle::track = NULL;//new float[SIZEX*SIZEY]{0.0f};
+
+#endif
